@@ -20,6 +20,9 @@ typedef enum {
     GOLD
 } Marble;
 
+/*
+ * TODO: documentation, loser
+ */
 typedef struct Sigmar {
     unsigned int turn; // Turn counter.
 

@@ -7,7 +7,7 @@ int sigmar_Init(Sigmar** sigmar) {
 
     (*sigmar)->turn = 0;
 
-    (*sigmar)->board_size = 5;
+    (*sigmar)->board_size = 11;
 
     sigmar_GenerateBoard(*sigmar);
 

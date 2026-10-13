@@ -44,8 +44,9 @@ int sigmar_SetupTiles() {
     app.tiles = (Tile*) malloc(sizeof(Tile) * app.len_tiles);
     int next = 0;
 
-    float hoffs = (app.render_width / 2.0f) - (app.tile_width * app.sigmar->board_size * 0.5) + app.tile_width;
-    float voffs = (app.render_height / 2.0f) - (app.tile_height * app.sigmar->board_size * 0.5);
+    // It's not perfectly centered, but it'll have to do for the time being.
+    float hoffs = (app.render_width / 2.0f) - (app.tile_width * app.sigmar->board_size * 0.25);
+    float voffs = (app.render_height / 2.0f) - ((app.tile_height - app.tile_height_offset) * app.sigmar->board_size * 0.5);
 
     for (int y = 0; y < app.sigmar->board_size; y++) {
         for (int x = 0; x < app.sigmar->board_size; x++) {
@@ -118,8 +119,8 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
     app.mouse_tile = -1;
     app.tile_width = 0;
     app.tile_height = 0;
-    app.tile_width_offset = 3;
-    app.tile_height_offset = 28;
+    app.tile_width_offset = 0;
+    app.tile_height_offset = 14;
     app.tiles = NULL;
     app.len_tiles = 0;
 

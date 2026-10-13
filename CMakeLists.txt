@@ -3,8 +3,8 @@ project(OpenSigmar)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
 
 add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 
@@ -17,9 +17,3 @@ add_executable(OpenSigmar
 target_compile_definitions(OpenSigmar PUBLIC SIGMAR_SDL)
 
 target_link_libraries(OpenSigmar PRIVATE SDL3::SDL3)
-
-add_custom_command(
-    TARGET OpenSigmar POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-            $<TARGET_FILE_DIR:OpenSigmar>/OpenSigmar
-            ${CMAKE_SOURCE_DIR}/bin)
