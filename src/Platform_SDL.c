@@ -53,6 +53,13 @@ int sigmar_SetupTiles() {
             app.tiles[next].index = next;
             app.tiles[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) x - (float) app.tile_width / 2 * (float) y);
             app.tiles[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) y);
+
+            if (app.sigmar->board[next] != INVALID && app.sigmar->board[next] != EMPTY) {
+                sigmar_IsFree(app.sigmar, next, &app.tiles[next].free);
+            } else {
+                app.tiles[next].free = 0;
+            }
+
             next++;
         }
     }
@@ -64,6 +71,9 @@ int sigmar_RenderTile(Tile *tile) {
 
     SDL_FRect rect = {tile->x, tile->y, app.tile_width, app.tile_height};
 
+    char *character = malloc(2);
+    character = " ";
+
     int has_marble;
     SDL_SetTextureColorMod(app.texture.marble, 0, 0, 255);
     switch (app.sigmar->board[tile->index]) {
@@ -72,22 +82,72 @@ int sigmar_RenderTile(Tile *tile) {
             break;
         case SALT:
             SDL_SetTextureColorMod(app.texture.marble, 200, 200, 200);
+            character = "S";
             has_marble = 1;
             break;
         case FIRE:
             SDL_SetTextureColorMod(app.texture.marble, 255, 0, 0);
+            character = "F";
             has_marble = 1;
             break;
         case WATER:
             SDL_SetTextureColorMod(app.texture.marble, 0, 0, 255);
+            character = "W";
             has_marble = 1;
             break;
         case EARTH:
             SDL_SetTextureColorMod(app.texture.marble, 0, 255, 0);
+            character = "E";
             has_marble = 1;
             break;
         case AIR:
             SDL_SetTextureColorMod(app.texture.marble, 0, 255, 255);
+            character = "A";
+            has_marble = 1;
+            break;
+        case VITAE:
+            SDL_SetTextureColorMod(app.texture.marble, 255, 200, 200);
+            character = "V";
+            has_marble = 1;
+            break;
+        case MORS:
+            SDL_SetTextureColorMod(app.texture.marble, 100, 0, 100);
+            character = "M";
+            has_marble = 1;
+            break;
+        case QUICKSILVER:
+            SDL_SetTextureColorMod(app.texture.marble, 100, 100, 100);
+            character = "Q";
+            has_marble = 1;
+            break;
+        case LEAD:
+            SDL_SetTextureColorMod(app.texture.marble, 100, 100, 100);
+            character = "L";
+            has_marble = 1;
+            break;
+        case TIN:
+            SDL_SetTextureColorMod(app.texture.marble, 100, 100, 100);
+            character = "T";
+            has_marble = 1;
+            break;
+        case IRON:
+            SDL_SetTextureColorMod(app.texture.marble, 100, 100, 100);
+            character = "I";
+            has_marble = 1;
+            break;
+        case COPPER:
+            SDL_SetTextureColorMod(app.texture.marble, 100, 100, 100);
+            character = "C";
+            has_marble = 1;
+            break;
+        case SILVER:
+            SDL_SetTextureColorMod(app.texture.marble, 100, 100, 100);
+            character = "S";
+            has_marble = 1;
+            break;
+        case GOLD:
+            SDL_SetTextureColorMod(app.texture.marble, 100, 100, 100);
+            character = "G";
             has_marble = 1;
             break;
         default:
@@ -100,6 +160,8 @@ int sigmar_RenderTile(Tile *tile) {
     if (has_marble == 1) {
         SDL_RenderTexture(app.renderer, app.texture.marble, NULL, &rect);
     }
+
+    SDL_RenderDebugText(app.renderer, rect.x + (rect.w / 2), rect.y + (rect.h / 2), character);
 
     return 0;
 }
@@ -168,8 +230,17 @@ SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
                 }
             }
 
-            if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN && app.mouse_tile != -1) {
-                sigmar_Select(app.sigmar, app.tiles[app.mouse_tile].index);
+            if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN && app.mouse_tile != -1 && app.tiles[app.mouse_tile].free == 1) {
+                SelectResult rc = sigmar_Select(app.sigmar, app.tiles[app.mouse_tile].index);
+
+                if (rc == SELECT_MATCH) {
+                    // TODO: Currently checks all tiles after a match. Should only need to check metals and adjacent tiles.
+                    for (int i = 0; i < app.len_tiles; i++) {
+                        if (app.sigmar->board[i] != INVALID && app.sigmar->board[i] != EMPTY) {
+                            sigmar_IsFree(app.sigmar, i, &app.tiles[i].free);
+                        }
+                    }
+                }
             }
 
             return SDL_APP_CONTINUE;
@@ -204,7 +275,7 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
     rect.w = rect.h = 10;
     SDL_RenderFillRect(app.renderer, &rect);
 
-    if (app.mouse_tile != -1) {
+    if (app.mouse_tile != -1 && app.tiles[app.mouse_tile].free == 1) {
         SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
         rect.x = (float) app.tiles[app.mouse_tile].x;
         rect.y = (float) app.tiles[app.mouse_tile].y;
@@ -213,12 +284,14 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
         SDL_RenderTexture(app.renderer, app.texture.hover, NULL, &rect);
     }
 
-    if (app.sigmar->last_selection != -1) {
-        rect.x = (float) app.tiles[app.sigmar->last_selection].x;
-        rect.y = (float) app.tiles[app.sigmar->last_selection].y;
-        rect.w = app.tile_width;
-        rect.h = app.tile_height;
-        SDL_RenderTexture(app.renderer, app.texture.hover, NULL, &rect);
+    if (app.sigmar->num_selected != 0) {
+        for (int i = 0; i < app.sigmar->num_selected; i++) {
+            rect.x = (float) app.tiles[app.sigmar->prev_selected[i].index].x;
+            rect.y = (float) app.tiles[app.sigmar->prev_selected[i].index].y;
+            rect.w = app.tile_width;
+            rect.h = app.tile_height;
+            SDL_RenderTexture(app.renderer, app.texture.hover, NULL, &rect);
+        }
     }
 
     SDL_RenderPresent(app.renderer);
