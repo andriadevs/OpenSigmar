@@ -31,7 +31,6 @@ typedef struct {
 typedef struct {
     float x, y; // Render coordinates for the tile.
     unsigned int index; // Index of the marble represented by the tile.
-    int free; // Whether or not the marble on the tile is free.
 } Tile;
 
 /*
@@ -52,7 +51,7 @@ typedef struct {
     float tile_width_offset;
     float tile_height_offset;
     Tile *tiles;
-    int len_tiles;
+    unsigned short tiles_length;
 } AppState;
 
 
