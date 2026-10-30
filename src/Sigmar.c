@@ -19,24 +19,44 @@ int sigmar_Init(Sigmar** sigmar) {
 
     sigmar_CalcAdjacencyOffsets((*sigmar), (*sigmar)->adjacency_offsets);
 
-    rc = 1;
-    while (rc != 0) {
+    rc = GENERATION_FAIL;
+    while (rc != GENERATION_SUCCESS) {
         rc = sigmar_GenerateBoard(*sigmar);
     }
-
-    //if (rc != 0) { return 1; }
 
     (*sigmar)->num_selected = 0;
 
     return 0;
 }
 
-int sigmar_GenerateBoard(Sigmar *sigmar) {
+int sigmar_Restart(Sigmar *sigmar) {
+    int rc;
+
+    sigmar->turn = 0;
+    
+    sigmar->board_size = 11;
+
+    rc = GENERATION_FAIL;
+    while (rc != GENERATION_SUCCESS) {
+        rc = sigmar_GenerateBoard(sigmar);
+    }
+
+    sigmar->num_selected = 0;
+
+    return 0;
+}
+
+GenerationResult sigmar_GenerateBoard(Sigmar *sigmar) {
+    if (sigmar == NULL) { return GENERATION_ERROR; }
+
     const int board_length = sigmar->board_size * sigmar->board_size;
+
+    memset(sigmar->marble_counts, 0, (int) NUM_MARBLES);
 
     sigmar->board = (Marble*) malloc(sizeof(Marble) * board_length);
     for (int i = 0; i < board_length; i++) { sigmar->board[i].type = MARBLE_EMPTY; sigmar->board[i].state = MARBLE_FREE; }
 
+    // TODO: Implement function to generate a random bucket of valid matches to place on the board.
     MarbleType bucket[][2] = {{MARBLE_SALT, MARBLE_SALT},
                           {MARBLE_SALT, MARBLE_SALT},
                           {MARBLE_FIRE, MARBLE_FIRE},
@@ -107,10 +127,9 @@ int sigmar_GenerateBoard(Sigmar *sigmar) {
     sigmar->marble_counts[MARBLE_GOLD] += 1;
 
     while (free_tiles_end > 0) {
-        // Pick some tiles
         for (int i = 0; i < match_size; i++) { next_free_tile[i] = -1; }
 
-        for (int i = 0; i < shuffled_tiles_end; i++) {
+        /*for (int i = 0; i < shuffled_tiles_end; i++) {
             printf("%d, ", shuffled_tiles[i]);
         }
         printf("\n--\n");
@@ -118,11 +137,7 @@ int sigmar_GenerateBoard(Sigmar *sigmar) {
             printf("%d, ", free_tiles[i]);
         }
         printf("\n++\n");
-        fflush(NULL);
-
-        //if (free_tiles_end > 54) {
-        //    exit(0);
-        //}
+        fflush(NULL);*/
 
         for (int i = 0; i < match_size; i++) {
             next_index[i] = rand() % free_tiles_end;
@@ -159,9 +174,7 @@ int sigmar_GenerateBoard(Sigmar *sigmar) {
                     if (aux_contiguous_free_count == 3) { break; }
                 }
 
-                // If sub_contiguous < 3, free_index would cause adjacent_index to no longer be free.
-                // So you need to pick a different index.
-                //if (aux_free == 0) { is_next_valid = 0; break; }
+                // If aux_contiguous_free_count < 3, free_tile would cause adjacent_tile to no longer be free.
                 if (aux_contiguous_free_count < 3) { is_next_valid = 0; break; }
             }
 
@@ -203,32 +216,11 @@ int sigmar_GenerateBoard(Sigmar *sigmar) {
         }
 
         if (fails >= 100) {
-            
-            
-            return -1;
+            return GENERATION_FAIL;
         }
     }
 
-    // Holy fuck I think it actually works now
-    // I just need to verify
-    // The current version of the bucket picker is the one that doesn't really work for metals
-    /*for (int i = 0; i < shuffled_tiles_end; i+=2) {
-        int picked = 0;
-        while (picked == 0) {
-            int b = rand() % 27;
-            if (bucket[b][0] != INVALID) {
-                sigmar->marble_counts[bucket[b][0]] += 1; // Increment marble_counts, but I'll implement this better later.
-                sigmar->marble_counts[bucket[b][1]] += 1; // Increment marble_counts, but I'll implement this better later.
-                sigmar->board[shuffled_tiles[i]] = bucket[b][0];
-                sigmar->board[shuffled_tiles[i + 1]] = bucket[b][1];
-                bucket[b][0] = INVALID;
-                picked = 1;
-            }
-        }
-    }*/
-
-    
-
+    // Messy code for filling in the board with valid matches. Replace with something better later.
     for (int i = 0; i < shuffled_tiles_end; i+=2) {
         int picked = 0;
         while (picked == 0) {
@@ -259,7 +251,9 @@ int sigmar_GenerateBoard(Sigmar *sigmar) {
         }
     }
 
-    return 0;
+    sigmar_UpdateMarbles(sigmar);
+
+    return GENERATION_SUCCESS;
 }
 
 SelectResult sigmar_Select(Sigmar* sigmar, const unsigned int index) {
@@ -423,11 +417,24 @@ MatchResult sigmar_Matches(Sigmar *sigmar, SelectedMarble *prev_selected, int nu
     return MATCH_FAIL;
 }
 
+int sigmar_IsBoardClear(Sigmar *sigmar, int *result) {
+    if (sigmar == NULL) { return 1; }
+
+    for (int i = 0; i < NUM_MARBLES; i++) {
+        if (sigmar->marble_counts[i] > 0) { *result = 0; return 0; }
+    }
+
+    *result = 1;
+
+    return 0;
+}
+
 int sigmar_UpdateMarbles(Sigmar *sigmar) {
     if (sigmar == NULL) { return 1; }
 
     for (int i = 0; i < sigmar->board_size * sigmar->board_size; i++) {
-        sigmar_IsFree(sigmar, i, &sigmar->board[i].state);
+        if (sigmar->board[i].type != MARBLE_EMPTY && 
+            sigmar->board[i].type != MARBLE_INVALID) { sigmar_IsFree(sigmar, i, &sigmar->board[i].state); }
     }
 
     return 0;

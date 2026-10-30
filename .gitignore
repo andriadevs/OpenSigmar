@@ -1,6 +1,6 @@
 /.git
 /.vscode
 /.cache
-/bin/OpenSigmar
+/bin/*
 /lib/*
 /build

@@ -7,7 +7,7 @@
 
 // DO NOT MODIFY THIS ENUM UNLESS YOU KNOW WHAT YOU ARE DOING
 // It is important to several calculations that they are ordered as they are.
-// 
+//
 typedef enum : char {
     MARBLE_SALT,
     MARBLE_FIRE,
@@ -42,6 +42,12 @@ typedef struct Marble {
 } Marble;
 
 typedef enum : char {
+    GENERATION_FAIL,
+    GENERATION_SUCCESS,
+    GENERATION_ERROR
+} GenerationResult;
+
+typedef enum : char {
     MATCH_FAIL,
     MATCH_SUCCESS,
     MATCH_CONTINUE,
@@ -60,6 +66,13 @@ typedef struct SelectedMarble {
     Marble marble;
 } SelectedMarble;
 
+// Event callback function type definitions. (Unused)
+//typedef void (* MatchCallback)(MatchResult);
+//typedef void (* BoardClearCallback)();
+//typedef void (* BoardGeneratedCallback)();
+
+
+
 // Temp pattern for testing
 #define PATTERN {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,\
                  1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,\
@@ -76,7 +89,7 @@ typedef struct SelectedMarble {
 static char pattern[] = PATTERN;
 
 /*
- * OpenSigmar game state structure.
+ * Game state structure.
  */
 typedef struct Sigmar {
     unsigned int turn; // Turn counter. (Unused)
@@ -84,7 +97,7 @@ typedef struct Sigmar {
     unsigned short board_size; // Size of the board.
     Marble *board; // Array of Marble states for each slot on the board.
 
-    int marble_counts[NUM_MARBLES]; // Counts of each marble type on the board.
+    char marble_counts[NUM_MARBLES]; // Counts of each marble type on the board.
 
     // Array of previously selected marbles.
     // Typically only the first index is used except in cases where more than two marbles can be matched.
@@ -93,17 +106,27 @@ typedef struct Sigmar {
     int num_selected; // Number of previously selected marbles.
     
     int adjacency_offsets[6]; // Stores the offsets used to calculate the six adjacent tile indices from any given index.
+
+    //MatchCallback *on_match; // Function called when a match successfully occurs.
+    //BoardClearCallback *on_board_clear; // Function called when the board is cleared.
 } Sigmar;
 
 /*
  * Initializes a new Sigmar instance.
  */
-int sigmar_Init(Sigmar** sigmar);
+int sigmar_Init(Sigmar **sigmar);
 
 /*
- * Generates a new board, returns 1 if it fails and 0 if it succeeds.
+ * Resets the game & generates a new board.
  */
-int sigmar_GenerateBoard(Sigmar* sigmar);
+int sigmar_Restart(Sigmar *sigmar);
+
+/*
+ * Attempts to generate a new board.
+ * 
+ * Returns GENERATION_FAIL if board generation gets stuck, otherwise returns GENERATION_SUCCESS.
+ */
+GenerationResult sigmar_GenerateBoard(Sigmar* sigmar);
 
 /*
  * Attempts to select marble at given index and attempts a match if applicable.
@@ -116,23 +139,29 @@ SelectResult sigmar_Select(Sigmar* sigmar, unsigned int index);
 int sigmar_CalcAdjacencyOffsets(const Sigmar* sigmar, int adj[6]);
 
 /*
- * Determines whether or not the marble at a given index is free.
+ * Checks whether or not the marble at a given index is free.
  */
 int sigmar_IsFree(Sigmar* sigmar, unsigned int index, MarbleState* result);
 
 /*
- * Determines whether or not the marble at a given index is blocked by adjacent marbles.
+ * Checks whether or not the marble at a given index is blocked by adjacent marbles.
  */
 int sigmar_IsBlocked(Sigmar* sigmar, unsigned int index, MarbleState* result);
 
 /*
  * Checks whether a given marble can be matched with previously selected marbles.
- * Sets result to 1 if match is successful, or 0 if match is unsuccessful.
+ * 
+ * Returns MATCH_SUCCESS if match is successful, or MATCH_FAIL if match is unsuccessful.
  */
 MatchResult sigmar_Matches(Sigmar *sigmar, SelectedMarble *prev_selected, int num_selected, Marble selection);
 
 /*
- * Updates the states of the marbles on the board.
+ * Returns whether the board has been cleared.
+ */
+int sigmar_IsBoardClear(Sigmar *sigmar, int *result);
+
+/*
+ * Updates the state of all marbles on the board.
  */
 int sigmar_UpdateMarbles(Sigmar *sigmar);
 
