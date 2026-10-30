@@ -264,6 +264,7 @@ SelectResult sigmar_Select(Sigmar* sigmar, const unsigned int index) {
     if (sigmar->board[index].type == MARBLE_INVALID) { return SELECT_ERROR; }
 
     if (sigmar->prev_selected[sigmar->num_selected - 1].index == index) {
+        sigmar->board[index].state = MARBLE_FREE;
         sigmar->num_selected -= 1;
 
     } else {
@@ -276,6 +277,7 @@ SelectResult sigmar_Select(Sigmar* sigmar, const unsigned int index) {
             default:
                 break;
             case MATCH_CONTINUE: // Adds the selection to the prev_selected array and awaits another selection.
+                sigmar->board[index].state = MARBLE_SELECTED;
                 sigmar->prev_selected[sigmar->num_selected].index = index;
                 sigmar->prev_selected[sigmar->num_selected].marble = sigmar->board[index];
                 sigmar->num_selected += 1;
@@ -286,10 +288,12 @@ SelectResult sigmar_Select(Sigmar* sigmar, const unsigned int index) {
                     SelectedMarble s = sigmar->prev_selected[i];
                     sigmar->marble_counts[s.marble.type] -= 1;
                     sigmar->board[s.index].type = MARBLE_EMPTY;
+                    sigmar->board[s.index].state = MARBLE_FREE;
                 }
 
                 sigmar->marble_counts[sigmar->board[index].type] -= 1;
                 sigmar->board[index].type = MARBLE_EMPTY;
+                sigmar->board[index].state = MARBLE_FREE;
 
                 sigmar->num_selected = 0;
 

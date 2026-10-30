@@ -6,35 +6,14 @@
  */
 
 #include "SDL3/SDL_render.h"
+#include "Sigmar.h"
 #include <SDL3/SDL.h>
 
 typedef struct Sigmar Sigmar; // Forward declaration.
 
 #define ASSETS_DIR "./assets/"
-#define TEXTURE_BACKGROUND "workshop.png"
-#define TEXTURE_TILE "tile_indent.png"
-#define TEXTURE_EDGE_NW "edge_nw.png"
-#define TEXTURE_EDGE_N "edge_n.png"
-#define TEXTURE_EDGE_NE "edge_ne.png"
-#define TEXTURE_EDGE_SE "edge_se.png"
-#define TEXTURE_EDGE_S "edge_s.png"
-#define TEXTURE_EDGE_SW "edge_sw.png"
-#define TEXTURE_HOVER "hover.png"
-#define TEXTURE_MARBLE "marble.png"
-#define TEXTURE_SALT "salt.png"
-#define TEXTURE_FIRE "fire.png"
-#define TEXTURE_WATER "water.png"
-#define TEXTURE_EARTH "earth.png"
-#define TEXTURE_AIR "air.png"
-#define TEXTURE_VITAE "vitae.png"
-#define TEXTURE_MORS "mors.png"
-#define TEXTURE_QUICKSILVER "quicksilver.png"
-#define TEXTURE_LEAD "lead.png"
-#define TEXTURE_TIN "tin.png"
-#define TEXTURE_IRON "iron.png"
-#define TEXTURE_COPPER "copper.png"
-#define TEXTURE_SILVER "silver.png"
-#define TEXTURE_GOLD "gold.png"
+#define TEXTURE_DIR ASSETS_DIR "texture/"
+#define SOUND_DIR ASSETS_DIR "sound/"
 
 #define COLOR_SALT 190, 190, 170
 #define COLOR_FIRE 160, 40, 10
@@ -51,35 +30,78 @@ typedef struct Sigmar Sigmar; // Forward declaration.
 #define COLOR_SILVER 90, 90, 80
 #define COLOR_GOLD 160, 100, 45
 
-/*
- * Stores SDL_Texture pointers for each texture. Only exists so that the AppState structure doesn't get flooded with a dozen SDL_Texture pointers.
- */
-typedef struct {
-    SDL_Texture *background;
-    SDL_Texture *tile;
-    SDL_Texture *edge_nw;
-    SDL_Texture *edge_n;
-    SDL_Texture *edge_ne;
-    SDL_Texture *edge_se;
-    SDL_Texture *edge_s;
-    SDL_Texture *edge_sw;
-    SDL_Texture *hover;
-    SDL_Texture *marble;
-    SDL_Texture *salt;
-    SDL_Texture *fire;
-    SDL_Texture *water;
-    SDL_Texture *earth;
-    SDL_Texture *air;
-    SDL_Texture *vitae;
-    SDL_Texture *mors;
-    SDL_Texture *quicksilver;
-    SDL_Texture *lead;
-    SDL_Texture *tin;
-    SDL_Texture *iron;
-    SDL_Texture *copper;
-    SDL_Texture *silver;
-    SDL_Texture *gold;
-} Textures;
+typedef enum {
+    TEXTURE_BACKGROUND,
+    TEXTURE_TILE,
+    TEXTURE_EDGE_NW,
+    TEXTURE_EDGE_N,
+    TEXTURE_EDGE_NE,
+    TEXTURE_EDGE_SE,
+    TEXTURE_EDGE_S,
+    TEXTURE_EDGE_SW,
+    TEXTURE_HOVER,
+    TEXTURE_MARBLE,
+    TEXTURE_SALT,
+    TEXTURE_FIRE,
+    TEXTURE_WATER,
+    TEXTURE_EARTH,
+    TEXTURE_AIR,
+    TEXTURE_VITAE,
+    TEXTURE_MORS,
+    TEXTURE_QUICKSILVER,
+    TEXTURE_LEAD,
+    TEXTURE_TIN,
+    TEXTURE_IRON,
+    TEXTURE_COPPER,
+    TEXTURE_SILVER,
+    TEXTURE_GOLD,
+    TEXTURE_INVALID
+} TextureID;
+
+
+static char filename_map[][TEXTURE_INVALID] = {
+    [TEXTURE_BACKGROUND] = "workshop.png",
+    [TEXTURE_TILE] = "tile_indent.png",
+    [TEXTURE_EDGE_NW] = "edge_nw.png",
+    [TEXTURE_EDGE_N] = "edge_n.png",
+    [TEXTURE_EDGE_NE] = "edge_ne.png",
+    [TEXTURE_EDGE_SE] = "edge_se.png",
+    [TEXTURE_EDGE_S] = "edge_s.png",
+    [TEXTURE_EDGE_SW] = "edge_sw.png",
+    [TEXTURE_HOVER] = "hover.png",
+    [TEXTURE_MARBLE] = "marble.png",
+    [TEXTURE_SALT] = "salt.png",
+    [TEXTURE_FIRE] = "fire.png",
+    [TEXTURE_WATER] = "water.png",
+    [TEXTURE_EARTH] = "earth.png",
+    [TEXTURE_AIR] = "air.png",
+    [TEXTURE_VITAE] = "vitae.png",
+    [TEXTURE_MORS] = "mors.png",
+    [TEXTURE_QUICKSILVER] = "quicksilver.png",
+    [TEXTURE_LEAD] = "lead.png",
+    [TEXTURE_TIN] = "tin.png",
+    [TEXTURE_IRON] = "iron.png",
+    [TEXTURE_COPPER] = "copper.png",
+    [TEXTURE_SILVER] = "silver.png",
+    [TEXTURE_GOLD] = "gold.png"
+};
+
+static int symbol_map[] = {
+    [MARBLE_SALT] = TEXTURE_SALT,
+    [MARBLE_FIRE] = TEXTURE_FIRE,
+    [MARBLE_WATER] = TEXTURE_WATER,
+    [MARBLE_EARTH] = TEXTURE_EARTH,
+    [MARBLE_AIR] = TEXTURE_AIR,
+    [MARBLE_VITAE] = TEXTURE_VITAE,
+    [MARBLE_MORS] = TEXTURE_MORS,
+    [MARBLE_QUICKSILVER] = TEXTURE_QUICKSILVER,
+    [MARBLE_LEAD] = TEXTURE_LEAD,
+    [MARBLE_TIN] = TEXTURE_TIN,
+    [MARBLE_IRON] = TEXTURE_IRON,
+    [MARBLE_COPPER] = TEXTURE_COPPER,
+    [MARBLE_SILVER] = TEXTURE_SILVER,
+    [MARBLE_GOLD] = TEXTURE_GOLD
+};
 
 /*
  * Stores the render coordinates and the index of the represented marble for each tile on the board.
@@ -90,12 +112,12 @@ typedef struct {
 } Tile;
 
 /*
- * Stores the render coordinates and texture of an "edge tile" of the board.
+ * Stores the render coordinates and texture of an uninteractible sprite.
  */
 typedef struct {
     float x, y;
     SDL_Texture *texture;
-} Edge;
+} Sprite;
 
 /*
  * Stores all of the persistent data used by the game & SDL.
@@ -104,21 +126,24 @@ typedef struct {
     Sigmar *sigmar;
     SDL_Window *window;
     SDL_Renderer *renderer;
+    SDL_Texture *texture[TEXTURE_INVALID];
+    
     int render_width;
     int render_height;
     float mouse_x;
     float mouse_y;
     unsigned int mouse_tile;
-    Textures texture;
+    
     float tile_width;
     float tile_height;
     float tile_width_offset;
     float tile_height_offset;
+
+    Sprite *sprites;
+    unsigned short sprites_length;
+
     Tile *tiles;
     unsigned short tiles_length;
-
-    Edge *edges;
-    unsigned short edges_length;
 } AppState;
 
 

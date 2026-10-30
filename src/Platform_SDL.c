@@ -14,253 +14,23 @@ static AppState app;
 int sigmar_LoadTextures() {
 
     SDL_Surface *surface = NULL;
+    char dir[128];
 
-    // BACKGROUND
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_BACKGROUND);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
+    for (int i = 0; i < TEXTURE_INVALID; i++) {
+        strcpy(dir, TEXTURE_DIR);
+        strcat(dir, filename_map[i]);
+        surface = SDL_LoadPNG(dir);
+        if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
 
-    app.texture.background = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.background, 255);
-    if (!app.texture.background) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
+        app.texture[i] = SDL_CreateTextureFromSurface(app.renderer, surface);
+        SDL_SetTextureAlphaMod(app.texture[i], 255);
+        if (!app.texture[i]) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
+    }
 
-    // TILE
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_TILE);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.tile_width = (float) surface->w;
-    app.tile_height = (float) surface->h;
-
-    app.texture.tile = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.tile, 255);
-    if (!app.texture.tile) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // EDGE NW
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_EDGE_NW);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.edge_nw = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.edge_nw, 255);
-    if (!app.texture.edge_nw) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // EDGE N
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_EDGE_N);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.edge_n = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.edge_n, 255);
-    if (!app.texture.edge_n) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // EDGE NE
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_EDGE_NE);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.edge_ne = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.edge_ne, 255);
-    if (!app.texture.edge_ne) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // EDGE SE
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_EDGE_SE);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.edge_se = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.edge_se, 255);
-    if (!app.texture.edge_se) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // EDGE S
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_EDGE_S);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.edge_s = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.edge_s, 255);
-    if (!app.texture.edge_s) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // EDGE SW
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_EDGE_SW);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.edge_sw = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.edge_sw, 255);
-    if (!app.texture.edge_sw) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // HOVER
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_HOVER);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.hover = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.hover, 255);
-    if (!app.texture.hover) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // MARBLE
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_MARBLE);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.marble = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.marble, 255);
-    if (!app.texture.marble) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // SALT
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_SALT);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.salt = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.salt, 255);
-    if (!app.texture.marble) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // FIRE
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_FIRE);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.fire = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.fire, 255);
-    if (!app.texture.fire) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // WATER
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_WATER);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.water = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.water, 255);
-    if (!app.texture.water) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // EARTH
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_EARTH);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.earth = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.earth, 255);
-    if (!app.texture.earth) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // AIR
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_AIR);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.air = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.air, 255);
-    if (!app.texture.air) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // VITAE
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_VITAE);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.vitae = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.vitae, 255);
-    if (!app.texture.vitae) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // MORS
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_MORS);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.mors = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.mors, 255);
-    if (!app.texture.mors) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // QUICKSILVER
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_QUICKSILVER);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.quicksilver = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.quicksilver, 255);
-    if (!app.texture.quicksilver) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // LEAD
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_LEAD);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.lead = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.lead, 255);
-    if (!app.texture.lead) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // TIN
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_TIN);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.tin = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.tin, 255);
-    if (!app.texture.tin) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // IRON
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_IRON);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.iron = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.iron, 255);
-    if (!app.texture.iron) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // COPPER
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_COPPER);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.copper = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.copper, 255);
-    if (!app.texture.copper) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // SILVER
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_SILVER);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.silver = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.silver, 255);
-    if (!app.texture.silver) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
-
-    // GOLD
-    surface = SDL_LoadPNG(ASSETS_DIR TEXTURE_GOLD);
-    if (!surface) { SDL_Log("Couldn't load png: %s", SDL_GetError()); return 1; }
-
-    app.texture.gold = SDL_CreateTextureFromSurface(app.renderer, surface);
-    SDL_SetTextureAlphaMod(app.texture.gold, 255);
-    if (!app.texture.gold) { SDL_Log("Couldn't create static texture: %s", SDL_GetError()); return 1; }
+    app.tile_width = app.texture[TEXTURE_TILE]->w;
+    app.tile_height = app.texture[TEXTURE_TILE]->h;
 
     return 0;
-}
-
-int sigmar_GetSymbolTexture(MarbleType type, SDL_Texture **texture) {
-    switch (type) {
-        case MARBLE_SALT:
-            *texture = app.texture.salt;
-            break;
-        case MARBLE_FIRE:
-            *texture = app.texture.fire;
-            break;
-        case MARBLE_WATER:
-            *texture = app.texture.water;
-            break;
-        case MARBLE_EARTH:
-            *texture = app.texture.earth;
-            break;
-        case MARBLE_AIR:
-            *texture = app.texture.air;
-            break;
-        case MARBLE_VITAE:
-            *texture = app.texture.vitae;
-            break;
-        case MARBLE_MORS:
-            *texture = app.texture.mors;
-            break;
-        case MARBLE_QUICKSILVER:
-            *texture = app.texture.quicksilver;
-            break;
-        case MARBLE_LEAD:
-            *texture = app.texture.lead;
-            break;
-        case MARBLE_TIN:
-            *texture = app.texture.tin;
-            break;
-        case MARBLE_IRON:
-            *texture = app.texture.iron;
-            break;
-        case MARBLE_COPPER:
-            *texture = app.texture.copper;
-            break;
-        case MARBLE_SILVER:
-            *texture = app.texture.silver;
-            break;
-        case MARBLE_GOLD:
-            *texture = app.texture.gold;
-            break;
-        default:
-            *texture = app.texture.salt;
-            break;
-    }
 }
 
 int sigmar_SetupTiles() {
@@ -283,41 +53,41 @@ int sigmar_SetupTiles() {
         }
     }
 
-    // Setup edges
+    // Setup sprites
     const int half_board = (int) (app.sigmar->board_size / 2);
-    app.edges_length = half_board * 6;
-    app.edges = (Edge*) malloc(sizeof(Edge) * app.edges_length);
+    app.sprites_length = half_board * 6;
+    app.sprites = (Sprite*) malloc(sizeof(Sprite) * app.sprites_length);
     next = 0;
 
     for (int i = 0; i < 5; i++) {
-        app.edges[next].texture = app.texture.edge_nw;
-        app.edges[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * -1.0f - (float) app.tile_width / 2 * (float) i);
-        app.edges[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) i);
+        app.sprites[next].texture = app.texture[TEXTURE_EDGE_NW];
+        app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * -1.0f - (float) app.tile_width / 2 * (float) i);
+        app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) i);
         next++;
 
-        app.edges[next].texture = app.texture.edge_n;
-        app.edges[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * 0.5f + (float) app.tile_width * (float) i);
-        app.edges[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) -1);
+        app.sprites[next].texture = app.texture[TEXTURE_EDGE_N];
+        app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * 0.5f + (float) app.tile_width * (float) i);
+        app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) -1);
         next++;
 
-        app.edges[next].texture = app.texture.edge_ne;
-        app.edges[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) (3 + app.sigmar->board_size - (half_board - i)) - (float) app.tile_width / 2 * (float) (app.sigmar->board_size - (half_board - i)));
-        app.edges[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) i);
+        app.sprites[next].texture = app.texture[TEXTURE_EDGE_NE];
+        app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) (3 + app.sigmar->board_size - (half_board - i)) - (float) app.tile_width / 2 * (float) (app.sigmar->board_size - (half_board - i)));
+        app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) i);
         next++;
 
-        app.edges[next].texture = app.texture.edge_se;
-        app.edges[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) (3 + half_board + (half_board - i)) - (float) app.tile_width / 2 * (float) (half_board + (half_board - i)));
-        app.edges[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) (half_board + i + 1));
+        app.sprites[next].texture = app.texture[TEXTURE_EDGE_SE];
+        app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) (3 + half_board + (half_board - i)) - (float) app.tile_width / 2 * (float) (half_board + (half_board - i)));
+        app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) (half_board + i + 1));
         next++;
 
-        app.edges[next].texture = app.texture.edge_s;
-        app.edges[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * 0.5f + (float) app.tile_width * (float) i);
-        app.edges[next].y = voffs + ((app.tile_height - app.tile_height_offset) * app.sigmar->board_size);
+        app.sprites[next].texture = app.texture[TEXTURE_EDGE_S];
+        app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * 0.5f + (float) app.tile_width * (float) i);
+        app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * app.sigmar->board_size);
         next++;
 
-        app.edges[next].texture = app.texture.edge_sw;
-        app.edges[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (-6 + (half_board + i)) - (float) app.tile_width / 2 * (float) (half_board + i - 1));
-        app.edges[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) (half_board + i + 1));
+        app.sprites[next].texture = app.texture[TEXTURE_EDGE_SW];
+        app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (-6 + (half_board + i)) - (float) app.tile_width / 2 * (float) (half_board + i - 1));
+        app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) (half_board + i + 1));
         next++;
     }
 
@@ -334,105 +104,106 @@ int sigmar_RenderTile(Tile *tile) {
     SDL_Texture *symbol;
 
     int has_marble;
-    SDL_SetTextureColorMod(app.texture.marble, 0, 0, 255);
+    SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], 0, 0, 0);
     switch (app.sigmar->board[tile->index].type) {
         case MARBLE_EMPTY:
             has_marble = 0;
             break;
         case MARBLE_SALT:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_SALT);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_SALT);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "S";            
             has_marble = 1;
             break;
         case MARBLE_FIRE:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_FIRE);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_FIRE);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "F";
             has_marble = 1;
             break;
         case MARBLE_WATER:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_WATER);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_WATER);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "W";
             has_marble = 1;
             break;
         case MARBLE_EARTH:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_EARTH);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_EARTH);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "E";
             has_marble = 1;
             break;
         case MARBLE_AIR:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_AIR);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_AIR);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "A";
             has_marble = 1;
             break;
         case MARBLE_VITAE:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_VITAE);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_VITAE);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "V";
             has_marble = 1;
             break;
         case MARBLE_MORS:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_MORS);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_MORS);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "M";
             has_marble = 1;
             break;
         case MARBLE_QUICKSILVER:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_QUICKSILVER);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_QUICKSILVER);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "Q";
             has_marble = 1;
             break;
         case MARBLE_LEAD:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_LEAD);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_LEAD);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "L";
             has_marble = 1;
             break;
         case MARBLE_TIN:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_TIN);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_TIN);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "T";
             has_marble = 1;
             break;
         case MARBLE_IRON:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_IRON);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_IRON);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "I";
             has_marble = 1;
             break;
         case MARBLE_COPPER:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_COPPER);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_COPPER);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "C";
             has_marble = 1;
             break;
         case MARBLE_SILVER:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_SILVER);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_SILVER);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "S";
             has_marble = 1;
             break;
         case MARBLE_GOLD:
-            SDL_SetTextureColorMod(app.texture.marble, COLOR_GOLD);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], COLOR_GOLD);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             character = "G";
             has_marble = 1;
             break;
         default:
-            SDL_SetTextureColorMod(app.texture.marble, 0, 0, 0);
-            sigmar_GetSymbolTexture(app.sigmar->board[tile->index].type, &symbol);
+            SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], 0, 0, 0);
+            symbol = app.texture[symbol_map[app.sigmar->board[tile->index].type]];
             break;
     }
 
-    SDL_RenderTexture(app.renderer, app.texture.tile, NULL, &rect);
+    SDL_RenderTexture(app.renderer, app.texture[TEXTURE_TILE], NULL, &rect);
 
     if (has_marble == 1) {
-        SDL_RenderTexture(app.renderer, app.texture.marble, NULL, &rect);
+        if (app.sigmar->board[tile->index].state == MARBLE_SELECTED) { rect.y -= 2; }
+        SDL_RenderTexture(app.renderer, app.texture[TEXTURE_MARBLE], NULL, &rect);
         SDL_RenderTexture(app.renderer, symbol, NULL, &rect);
     }
 
@@ -444,7 +215,9 @@ int sigmar_RenderTile(Tile *tile) {
 int sigmar_RenderBackground() {
     SDL_FRect rect = {0, 0, app.render_width, app.render_height};
 
-    SDL_RenderTexture(app.renderer, app.texture.background, NULL, &rect);
+    SDL_RenderTexture(app.renderer, app.texture[TEXTURE_BACKGROUND], NULL, &rect);
+
+    return 0;
 }
 
 int sigmar_RenderHud() {
@@ -483,6 +256,8 @@ int sigmar_RenderHud() {
 
         SDL_RenderDebugText(app.renderer, rect.x + 25, rect.y + 25, "You cleared the board! Press space to reset.");
     }
+
+    return 0;
 }
 
 SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
@@ -549,7 +324,7 @@ SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
                 }
             }
 
-            if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN && app.mouse_tile != -1 && app.sigmar->board[app.mouse_tile].state == MARBLE_FREE) {
+            if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN && app.mouse_tile != -1 && app.sigmar->board[app.mouse_tile].state != MARBLE_LOCKED) {
                 SelectResult rc = sigmar_Select(app.sigmar, app.tiles[app.mouse_tile].index);
             }
 
@@ -596,10 +371,10 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
     rect.w = rect.h = 10;
     SDL_RenderFillRect(app.renderer, &rect);*/
 
-    for (int i = 0; i < app.edges_length; i++) {
-        rect.x = app.edges[i].x;
-        rect.y = app.edges[i].y;
-        SDL_RenderTexture(app.renderer, app.edges[i].texture, NULL, &rect);
+    for (int i = 0; i < app.sprites_length; i++) {
+        rect.x = app.sprites[i].x;
+        rect.y = app.sprites[i].y;
+        SDL_RenderTexture(app.renderer, app.sprites[i].texture, NULL, &rect);
     }
 
     if (app.mouse_tile != -1 && app.sigmar->board[app.mouse_tile].state == MARBLE_FREE) {
@@ -608,7 +383,7 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
         rect.y = (float) app.tiles[app.mouse_tile].y;
         rect.w = app.tile_width;
         rect.h = app.tile_height;
-        SDL_RenderTexture(app.renderer, app.texture.hover, NULL, &rect);
+        SDL_RenderTexture(app.renderer, app.texture[TEXTURE_HOVER], NULL, &rect);
     }
 
     if (app.sigmar->num_selected != 0) {
@@ -617,7 +392,7 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
             rect.y = (float) app.tiles[app.sigmar->prev_selected[i].index].y;
             rect.w = app.tile_width;
             rect.h = app.tile_height;
-            SDL_RenderTexture(app.renderer, app.texture.hover, NULL, &rect);
+            SDL_RenderTexture(app.renderer, app.texture[TEXTURE_HOVER], NULL, &rect);
         }
     }
 
