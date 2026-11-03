@@ -29,7 +29,30 @@ int sigmar_Init(Sigmar** sigmar) {
     return 0;
 }
 
-int sigmar_Restart(Sigmar *sigmar) {
+int sigmar_Bind(Sigmar *sigmar, EventID event, EventCallback callback) {
+
+    if (sigmar == NULL) { return 1; }
+
+    sigmar->callback[event] = callback;
+
+    return 0;
+
+}
+
+int sigmar_Unbind(Sigmar *sigmar, EventID event) {
+
+    if (sigmar == NULL) { return 1; }
+
+    sigmar->callback[event] = NULL;
+
+    return 0;
+
+}
+
+int sigmar_ResetBoard(Sigmar *sigmar) {
+
+    if (sigmar == NULL) { return 1; }
+
     int rc;
 
     sigmar->turn = 0;
@@ -42,6 +65,8 @@ int sigmar_Restart(Sigmar *sigmar) {
     }
 
     sigmar->num_selected = 0;
+
+    if (sigmar->callback[EVENT_BOARD_RESET] != NULL) { sigmar->callback[EVENT_BOARD_RESET](); }
 
     return 0;
 }
@@ -115,6 +140,7 @@ GenerationResult sigmar_GenerateBoard(Sigmar *sigmar) {
             valid_tiles[adj] == 1) { sigmar->board[adj].type = MARBLE_PLACEHOLDER; free_tiles[free_tiles_end] = adj; free_tiles_end++; }
     }
 
+    // This chunk of code calculates the corners of the board that should be chopped off to make the board properly hexagonal.
     const int center_row = (int) (sigmar->board_size * sigmar->board_size * 0.5 - sigmar->board_size * 0.5);
     for (int i = 1; i <= sigmar->board_size / 2; i++) {
         for (int x = 1; x < i + 1; x++) {
@@ -219,6 +245,7 @@ GenerationResult sigmar_GenerateBoard(Sigmar *sigmar) {
             return GENERATION_FAIL;
         }
     }
+    
 
     // Messy code for filling in the board with valid matches. Replace with something better later.
     for (int i = 0; i < shuffled_tiles_end; i+=2) {
@@ -256,51 +283,61 @@ GenerationResult sigmar_GenerateBoard(Sigmar *sigmar) {
     return GENERATION_SUCCESS;
 }
 
+int sigmar_IsBoardWinnable(Sigmar *sigmar) {
+    return 1;
+}
+
 SelectResult sigmar_Select(Sigmar* sigmar, const unsigned int index) {
-    if (sigmar == NULL) { return SELECT_ERROR; }
 
-    if (index >= sigmar->board_size * sigmar->board_size || index < 0) { return SELECT_ERROR; }
-
-    if (sigmar->board[index].type == MARBLE_INVALID) { return SELECT_ERROR; }
-
+    if (sigmar == NULL ||
+        index >= sigmar->board_size * sigmar->board_size ||
+        index < 0 ||
+        sigmar->board[index].type == MARBLE_INVALID) { return SELECT_ERROR; }
+    
     if (sigmar->prev_selected[sigmar->num_selected - 1].index == index) {
         sigmar->board[index].state = MARBLE_FREE;
         sigmar->num_selected -= 1;
+        return SELECT_DESELECT;
+    }
 
-    } else {
-        MatchResult rc = sigmar_Matches(sigmar, sigmar->prev_selected, sigmar->num_selected, sigmar->board[index]);
+    int was_board_clear = 0;
+    MatchResult rc = sigmar_Matches(sigmar, sigmar->prev_selected, sigmar->num_selected, sigmar->board[index]);
 
-        if (rc == MATCH_ERROR) { return SELECT_ERROR; }
+    if (rc == MATCH_ERROR) { return SELECT_ERROR; }
 
-        switch (rc) {
-            case MATCH_FAIL: // MATCH_FAIL exists purely for readability.
-            default:
-                break;
-            case MATCH_CONTINUE: // Adds the selection to the prev_selected array and awaits another selection.
-                sigmar->board[index].state = MARBLE_SELECTED;
-                sigmar->prev_selected[sigmar->num_selected].index = index;
-                sigmar->prev_selected[sigmar->num_selected].marble = sigmar->board[index];
-                sigmar->num_selected += 1;
+    switch (rc) {
+        case MATCH_FAIL: // MATCH_FAIL exists purely for readability.
+        default:
+            break;
+        case MATCH_CONTINUE: // Adds the selection to the prev_selected array and awaits another selection.
+            sigmar->board[index].state = MARBLE_SELECTED;
+            sigmar->prev_selected[sigmar->num_selected].index = index;
+            sigmar->prev_selected[sigmar->num_selected].marble = sigmar->board[index];
+            sigmar->num_selected += 1;
 
-                break;
-            case MATCH_SUCCESS: // Removes all selected marbles and decrements marble_counts accordingly.
-                for (int i = 0; i < sigmar->num_selected; i++) {
-                    SelectedMarble s = sigmar->prev_selected[i];
-                    sigmar->marble_counts[s.marble.type] -= 1;
-                    sigmar->board[s.index].type = MARBLE_EMPTY;
-                    sigmar->board[s.index].state = MARBLE_FREE;
-                }
+            break;
+        case MATCH_SUCCESS: // Removes all selected marbles and decrements marble_counts accordingly.
 
-                sigmar->marble_counts[sigmar->board[index].type] -= 1;
-                sigmar->board[index].type = MARBLE_EMPTY;
-                sigmar->board[index].state = MARBLE_FREE;
+            for (int i = 0; i < sigmar->num_selected; i++) {
+                SelectedMarble s = sigmar->prev_selected[i];
+                sigmar->marble_counts[s.marble.type] -= 1;
+                sigmar->board[s.index].type = MARBLE_EMPTY;
+                sigmar->board[s.index].state = MARBLE_FREE;
+            }
 
-                sigmar->num_selected = 0;
+            sigmar->marble_counts[sigmar->board[index].type] -= 1;
+            sigmar->board[index].type = MARBLE_EMPTY;
+            sigmar->board[index].state = MARBLE_FREE;
 
-                sigmar_UpdateMarbles(sigmar);
+            sigmar->num_selected = 0;
 
-                return SELECT_MATCH;            
-        }
+            sigmar_UpdateMarbles(sigmar);
+
+            if (sigmar_IsBoardClear(sigmar) &&
+                !was_board_clear &&
+                sigmar->callback[EVENT_BOARD_CLEAR] != NULL) { sigmar->callback[EVENT_BOARD_CLEAR](); }
+
+            return SELECT_MATCH;            
     }
 
     return SELECT_SUCCESS;
@@ -373,7 +410,7 @@ MatchResult sigmar_Matches(Sigmar *sigmar, SelectedMarble *prev_selected, int nu
     // Only gold can be matched with nothing else, pass MATCH_CONTINUE for every other marble type.
     if (num_selected == 0 && selection.type != MARBLE_GOLD) { return MATCH_CONTINUE; }
 
-    // Some things to note:
+    // Something to note:
     //  Metals can *technically* always be matched as normal for their ruleset,
     //  however, they only become free when all metals of the previous tier are depleted.
     switch (selection.type) {
@@ -421,16 +458,14 @@ MatchResult sigmar_Matches(Sigmar *sigmar, SelectedMarble *prev_selected, int nu
     return MATCH_FAIL;
 }
 
-int sigmar_IsBoardClear(Sigmar *sigmar, int *result) {
-    if (sigmar == NULL) { return 1; }
+int sigmar_IsBoardClear(Sigmar *sigmar) {
+    if (sigmar == NULL) { return 0; }
 
     for (int i = 0; i < NUM_MARBLES; i++) {
-        if (sigmar->marble_counts[i] > 0) { *result = 0; return 0; }
+        if (sigmar->marble_counts[i] > 0) { return 0; }
     }
 
-    *result = 1;
-
-    return 0;
+    return 1;
 }
 
 int sigmar_UpdateMarbles(Sigmar *sigmar) {

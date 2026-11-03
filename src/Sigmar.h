@@ -1,6 +1,12 @@
 #ifndef OPENSIGMAR_SIGMAR_H
 #define OPENSIGMAR_SIGMAR_H
 
+/**
+ * TODO: Replace sound effects and music with sound effects and music that aren't directly ripped from the game.
+ *
+ *
+ */
+
 #define ADJACENCY_OFFSETS(BOARD_SIZE) {-(BOARD_SIZE), 1, (BOARD_SIZE) + 1, (BOARD_SIZE), -1, -(BOARD_SIZE) - 1}
 
 #define MAX_SELECTED 4
@@ -57,6 +63,7 @@ typedef enum : char {
 typedef enum : char {
     SELECT_FAIL,
     SELECT_SUCCESS,
+    SELECT_DESELECT,
     SELECT_MATCH,
     SELECT_ERROR
 } SelectResult;
@@ -66,12 +73,13 @@ typedef struct SelectedMarble {
     Marble marble;
 } SelectedMarble;
 
-// Event callback function type definitions. (Unused)
-//typedef void (* MatchCallback)(MatchResult);
-//typedef void (* BoardClearCallback)();
-//typedef void (* BoardGeneratedCallback)();
+typedef enum : char {
+    EVENT_BOARD_RESET,
+    EVENT_BOARD_CLEAR,
+    EVENT_INVALID
+} EventID;
 
-
+typedef void (* EventCallback)(void);
 
 // Temp pattern for testing
 #define PATTERN {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,\
@@ -92,6 +100,8 @@ static char pattern[] = PATTERN;
  * Game state structure.
  */
 typedef struct Sigmar {
+    int adjacency_offsets[6]; // Stores the offsets used to calculate the six adjacent tile indices from any given index.
+
     unsigned int turn; // Turn counter. (Unused)
 
     unsigned short board_size; // Size of the board.
@@ -104,11 +114,8 @@ typedef struct Sigmar {
     // The first index is considered the primary selection, the rest are considered auxillary selections.
     SelectedMarble prev_selected[MAX_SELECTED];
     int num_selected; // Number of previously selected marbles.
-    
-    int adjacency_offsets[6]; // Stores the offsets used to calculate the six adjacent tile indices from any given index.
 
-    //MatchCallback *on_match; // Function called when a match successfully occurs.
-    //BoardClearCallback *on_board_clear; // Function called when the board is cleared.
+    EventCallback callback[EVENT_INVALID]; // Callback functions for each valid EventID.
 } Sigmar;
 
 /*
@@ -117,9 +124,19 @@ typedef struct Sigmar {
 int sigmar_Init(Sigmar **sigmar);
 
 /*
+ * Binds an event callback function to the given EventID.
+ */
+int sigmar_Bind(Sigmar *sigmar, EventID event, EventCallback callback);
+
+/*
+ * Unbinds the event callback function from the given EventID.
+ */
+int sigmar_Unbind(Sigmar *sigmar, EventID event);
+
+/*
  * Resets the game & generates a new board.
  */
-int sigmar_Restart(Sigmar *sigmar);
+int sigmar_ResetBoard(Sigmar *sigmar);
 
 /*
  * Attempts to generate a new board.
@@ -127,6 +144,14 @@ int sigmar_Restart(Sigmar *sigmar);
  * Returns GENERATION_FAIL if board generation gets stuck, otherwise returns GENERATION_SUCCESS.
  */
 GenerationResult sigmar_GenerateBoard(Sigmar* sigmar);
+
+/*
+ * TODO: Implement this.
+ * Checks if a board is winnable.
+ *
+ * Returns 1 if it can be cleared, otherwise returns 0;
+ */
+int sigmar_IsBoardWinnable(Sigmar *sigmar);
 
 /*
  * Attempts to select marble at given index and attempts a match if applicable.
@@ -156,9 +181,9 @@ int sigmar_IsBlocked(Sigmar* sigmar, unsigned int index, MarbleState* result);
 MatchResult sigmar_Matches(Sigmar *sigmar, SelectedMarble *prev_selected, int num_selected, Marble selection);
 
 /*
- * Returns whether the board has been cleared.
+ * Returns 1 if the board has been cleared, 0 otherwise.
  */
-int sigmar_IsBoardClear(Sigmar *sigmar, int *result);
+int sigmar_IsBoardClear(Sigmar *sigmar);
 
 /*
  * Updates the state of all marbles on the board.
