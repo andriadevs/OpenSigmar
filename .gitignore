@@ -4,3 +4,5 @@
 /bin/*
 /lib/*
 /build
+compile_commands.json
+_compile_commands.json

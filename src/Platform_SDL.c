@@ -1,3 +1,4 @@
+#ifdef SIGMAR_SDL
 #include "Platform_SDL.h"
 #include "Platform.h"
 #include "SDL3/SDL_audio.h"
@@ -7,7 +8,6 @@
 #include "SDL3/SDL_iostream.h"
 #include "SDL3/SDL_keycode.h"
 #include "SDL3/SDL_log.h"
-#include "SDL3/SDL_oldnames.h"
 #include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_rect.h"
 #include "SDL3/SDL_render.h"
@@ -50,6 +50,8 @@ int sigmar_LoadTextures() {
     app.tile_width = app.texture[TEXTURE_TILE]->w;
     app.tile_height = app.texture[TEXTURE_TILE]->h;
 
+    app.hud_height = app.tile_height * 1.25f;
+
     return rc;
 
 }
@@ -81,9 +83,8 @@ int sigmar_SetupBoard() {
     app.tiles = (Tile*) malloc(sizeof(Tile) * app.tiles_length);
     int next = 0;
 
-    // It's not perfectly centered, but it'll have to do for the time being.
-    float hoffs = (app.render_width / 2.0f) - (app.tile_width * app.sigmar->board_size * 0.25);
-    float voffs = (app.render_height / 2.0f) - ((app.tile_height - app.tile_height_offset) * app.sigmar->board_size * 0.5);
+    float hoffs = (app.render_width / 2.0f) - ((app.tile_width - app.tile_width_offset) * (app.sigmar->board_size + 1) * 0.25f) - (app.tile_width_offset * 0.5f);
+    float voffs = ((app.render_height - app.hud_height)  / 2.0f) - ((app.tile_height - app.tile_height_offset) * app.sigmar->board_size * 0.5f) - (app.tile_height_offset * 0.5f);
 
     for (int y = 0; y < app.sigmar->board_size; y++) {
         for (int x = 0; x < app.sigmar->board_size; x++) {
@@ -167,7 +168,18 @@ int sigmar_SetupBoard() {
     app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * -1.0f);
     next++;
 
-    return 0;
+    // Setup buttons
+
+    app.buttons_length = 1;
+    app.buttons = (Button *) malloc(sizeof(Button) * app.buttons_length);
+
+    app.buttons[0].rect.x = 16.0f;
+    app.buttons[0].rect.y = app.render_height - ((app.hud_height / 2.0f) + (app.texture[TEXTURE_WINS]->h / 2.0f));
+    app.buttons[0].rect.w = 64.0f;
+    app.buttons[0].rect.h = 64.0f;
+    app.buttons[0].texture = app.texture[TEXTURE_RESET];
+    app.buttons[0].action = BUTTON_RESET;
+    
 }
 
 int sigmar_RenderTile(Tile *tile) {
@@ -237,49 +249,85 @@ int sigmar_RenderBackground() {
 
     SDL_RenderTexture(app.renderer, app.texture[TEXTURE_BACKGROUND], NULL, &rect);
 
+    // HUD background rendering
+    rect.y = app.render_height - app.hud_height;
+    rect.h = app.hud_height;
+
+    SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, 255);
+    SDL_RenderFillRect(app.renderer, &rect);
+
+    SDL_SetRenderDrawColor(app.renderer, 200, 200, 200, SDL_ALPHA_OPAQUE);
+    SDL_RenderLine(app.renderer, rect.x, rect.y, rect.x + app.render_width, rect.y);
+
     return 0;
 
 }
 
 int sigmar_RenderHud() {
 
-    // There's nothing more permenant than a temporary solution...
-
     int i;
 
     const int hud_width = 90;
     const int hud_height = 610;
 
-    ColorRGBA red_color = {255, 0, 0, 255};
+    SDL_FRect rect = {
+        0.0f,
+        (app.render_height) - (app.tile_height * 3.0f),
+        app.render_width,
+        app.tile_height * 2.0f
+    };
 
-    SDL_FRect rect = {app.render_width / 8.0f, app.render_height / 2.0f - hud_height / 2.0f, hud_width, hud_height};
+    rect.x = (app.render_width / 2.0f) - (app.tile_width * (MARBLE_GOLD + 1) * 0.5f);
+    rect.y = (app.render_height) - app.tile_height;
+    rect.w = 64;
+    rect.h = 64;
 
-    const float text_offs = 16.0f;
+    SDL_Texture *symbol;
+    ColorRGBA color;
 
-    SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-    SDL_RenderFillRect(app.renderer, &rect);
+    for (int i = 0; i < MARBLE_INVALID; i++) {
 
-    SDL_SetRenderDrawColor(app.renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-    SDL_RenderRect(app.renderer, &rect);
+        symbol = app.texture[type_symbol[i]];
+        color = type_color[i];
 
-    rect.x -= 4;
-    //rect.y += text_offs;
-    rect.h = 64; rect.w = 64;
-    for (i = 0; i < NUM_MARBLES; i++) {
-        SDL_SetTextureAlphaMod(app.texture[type_symbol[i]], 255);
-        SDL_RenderTexture(app.renderer, app.texture[type_symbol[i]], NULL, &rect);
+        //SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE_OUTLINE], color.r, color.g, color.b);
+        SDL_SetTextureAlphaMod(app.texture[TEXTURE_MARBLE_OUTLINE], color.a * 0.5f);
+        SDL_SetTextureAlphaMod(symbol, color.a * 0.5f);
 
-        if (i <= MARBLE_AIR && app.sigmar->marble_counts[i] % 2 != 0) {
-            sigmar_RenderNumber(rect.x + 60, rect.y + 16, &red_color, app.sigmar->marble_counts[i]);
-        } else {
-            sigmar_RenderNumber(rect.x + 60, rect.y + 16, NULL, app.sigmar->marble_counts[i]);
-        }
+        SDL_RenderTexture(app.renderer, app.texture[TEXTURE_MARBLE_OUTLINE], NULL, &rect);
+        SDL_RenderTexture(app.renderer, symbol, NULL, &rect);
 
-        rect.y += 40;
+        if (i <= MARBLE_AIR && app.sigmar->marble_counts[i] % 2 != 0) { SDL_SetRenderDrawColor(app.renderer, 200, 0, 0, 255); }
+        else { SDL_SetRenderDrawColor(app.renderer, 200, 200, 200, 255); }
+        
+        SDL_RenderDebugTextFormat(app.renderer, rect.x + 29, rect.y - 6, "%i", app.sigmar->marble_counts[i]);
+
+        rect.x += app.tile_width;
+    }
+
+    rect.x = app.render_width - 16.0f - app.texture[TEXTURE_WINS]->w;
+    rect.y = app.render_height - ((app.hud_height / 2.0f) + (app.texture[TEXTURE_WINS]->h / 2.0f));
+    rect.w = app.texture[TEXTURE_WINS]->w;
+    rect.h = app.texture[TEXTURE_WINS]->h;
+
+    SDL_SetTextureAlphaMod(app.texture[TEXTURE_WINS], 200);
+    SDL_RenderTexture(app.renderer, app.texture[TEXTURE_WINS], NULL, &rect);
+
+    SDL_RenderDebugTextFormat(app.renderer, rect.x + 58, rect.y + 42, "%10lu", app.data->wins);
+
+
+    //rect.x = 16.0f;
+    //SDL_SetTextureAlphaMod(app.texture[TEXTURE_RESET], 200);
+    //SDL_RenderTexture(app.renderer, app.texture[TEXTURE_RESET], NULL, &rect);
+
+    for (int i = 0; i < app.buttons_length; i++) {
+        SDL_SetTextureAlphaMod(app.buttons[i].texture, 200);
+        SDL_RenderTexture(app.renderer, app.buttons[i].texture, NULL, &app.buttons[i].rect);
     }
     
-    SDL_RenderDebugTextFormat(app.renderer, rect.x + 30, rect.y + 18, "WINS:");
-    SDL_RenderDebugTextFormat(app.renderer, rect.x + 30, rect.y + 30, "%lu", app.data->wins);
+    //SDL_RenderDebugTextFormat(app.renderer, rect.x + 30, rect.y + 18, "WINS:");
+    
+    //SDL_RenderDebugTextFormat(app.renderer, rect.x + 30, rect.y + 30, "%lu", app.data->wins);
 
     if (app.is_board_clear) {
         rect.x=app.render_width / 2.0f - 200;
@@ -553,13 +601,19 @@ SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
 
                         case SELECT_MATCH:
                             sigmar_PlaySound(SOUND_MATCH, 1);
-
                             break;
 
                         default:
                             break;
                     }
-                } else {} // Block for interactible ui, not yet implemented.
+                } else {
+                    // Handle interactable ui
+                    for (int i = 0; i < app.buttons_length; i++) {
+                        if (SDL_PointInRectFloat(&app.mouse_position, &app.buttons[i].rect)) {
+                            sigmar_OnButtonPress(app.buttons[i].action);
+                        }
+                    }
+                }
             }
 
             return SDL_APP_CONTINUE;
@@ -603,6 +657,7 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
     // Render background
     sigmar_RenderBackground();
 
+    // Render tiles
     SDL_SetRenderDrawColor(app.renderer, 255, 100, 0, SDL_ALPHA_OPAQUE);
     rect.w = app.tile_width;
     rect.h = app.tile_height;
@@ -610,18 +665,14 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
         if (app.sigmar->board[app.tiles[i].index].type != MARBLE_INVALID) { sigmar_RenderTile(&app.tiles[i]); }
     }
 
-    /*SDL_SetRenderDrawColor(app.renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);
-    rect.x = app.mouse_x;
-    rect.y = app.mouse_y;
-    rect.w = rect.h = 10;
-    SDL_RenderFillRect(app.renderer, &rect);*/
-
+    //Render sprites
     for (int i = 0; i < app.sprites_length; i++) {
         rect.x = app.sprites[i].x;
         rect.y = app.sprites[i].y;
         SDL_RenderTexture(app.renderer, app.sprites[i].texture, NULL, &rect);
     }
 
+    // Render hover
     if (app.mouse_tile != -1 && app.sigmar->board[app.mouse_tile].state == MARBLE_FREE) {
         SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
         rect.x = (float) app.tiles[app.mouse_tile].x;
@@ -631,6 +682,7 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
         SDL_RenderTexture(app.renderer, app.texture[TEXTURE_HOVER], NULL, &rect);
     }
 
+    // Render selection
     if (app.sigmar->num_selected != 0) {
         for (int i = 0; i < app.sigmar->num_selected; i++) {
             rect.x = (float) app.tiles[app.sigmar->prev_selected[i].index].x;
@@ -656,6 +708,20 @@ void sigmar_SDL_AppQuit(void *appstate, SDL_AppResult result) {
 
 }
 
+void sigmar_OnButtonPress(ButtonAction action) {
+
+    switch (action) {
+        case BUTTON_RESET:
+            sigmar_ResetBoard(app.sigmar);
+            break;
+
+        default:
+        
+            break;
+
+    }
+
+}
 
 void sigmar_OnBoardReset() {
 
@@ -673,3 +739,4 @@ void sigmar_OnBoardClear() {
     sigmar_PlayAnimation(ANIMATION_BOARD_CLEAR);
 
 }
+#endif

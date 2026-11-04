@@ -1,5 +1,8 @@
+#ifdef SIGMAR_SDL
 #ifndef OPENSIGMAR_PLATFORM_SDL_H
 #define OPENSIGMAR_PLATFORM_SDL_H
+
+
 
 /*
  * Platform-specific entry point for platforms that use SDL (Linux, etc.)
@@ -46,8 +49,11 @@ typedef enum {
     TEXTURE_CORNER_SE,
     TEXTURE_CORNER_E,
     TEXTURE_CORNER_NE,
+    TEXTURE_WINS,
+    TEXTURE_RESET,
     TEXTURE_HOVER,
     TEXTURE_MARBLE,
+    TEXTURE_MARBLE_OUTLINE,
     TEXTURE_SALT,
     TEXTURE_FIRE,
     TEXTURE_WATER,
@@ -80,6 +86,11 @@ typedef enum {
     ANIMATION_INVALID
 } AnimationID;
 
+typedef enum {
+    BUTTON_RESET,
+    BUTTON_INVALID
+} ButtonAction;
+
 static char animation_length[ANIMATION_INVALID] = {
     [ANIMATION_BOARD_CLEAR] = 13,
     [ANIMATION_BOARD_GENERATE] = 13
@@ -101,8 +112,11 @@ static char texture_filename[TEXTURE_INVALID][24] = {
     [TEXTURE_CORNER_SE] = "corner_se.png",
     [TEXTURE_CORNER_E] = "corner_e.png",
     [TEXTURE_CORNER_NE] = "corner_ne.png",
+    [TEXTURE_WINS] = "wins.png",
+    [TEXTURE_RESET] = "reset.png",
     [TEXTURE_HOVER] = "hover.png",
     [TEXTURE_MARBLE] = "marble.png",
+    [TEXTURE_MARBLE_OUTLINE] = "marble_outline.png",
     [TEXTURE_SALT] = "salt.png",
     [TEXTURE_FIRE] = "fire.png",
     [TEXTURE_WATER] = "water.png",
@@ -183,6 +197,13 @@ typedef struct {
     SDL_Texture *texture;
 } Sprite;
 
+typedef struct {
+    SDL_FRect rect;
+    SDL_Texture *texture;
+    ButtonAction action;
+    float alpha_mult;
+} Button;
+
 /*
  * Stores all of the persistent data used by the game & SDL.
  */
@@ -201,6 +222,7 @@ typedef struct {
     
     int render_width;
     int render_height;
+    int hud_height;
     SDL_FPoint mouse_position;
     unsigned int mouse_tile;
     
@@ -214,6 +236,9 @@ typedef struct {
 
     Tile *tiles;
     unsigned short tiles_length;
+
+    Button *buttons;
+    unsigned short buttons_length;
 
     int is_board_clear;
 
@@ -299,6 +324,8 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate);
  */
 void sigmar_SDL_AppQuit(void *appstate, SDL_AppResult result);
 
+void sigmar_OnButtonPress(ButtonAction action);
+
 /*
  * Called when the board is reset.
  */
@@ -310,3 +337,4 @@ void sigmar_OnBoardReset();
 void sigmar_OnBoardClear();
 
 #endif //OPENSIGMAR_PLATFORM_SDL_H
+#endif

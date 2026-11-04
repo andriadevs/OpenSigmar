@@ -29,9 +29,9 @@ typedef enum : char {
     MARBLE_COPPER,
     MARBLE_SILVER,
     MARBLE_GOLD,
+    MARBLE_INVALID,
     MARBLE_EMPTY, // Invalid marble type but still represents a valid location on the board.
-    MARBLE_PLACEHOLDER, // Used during board generation.
-    MARBLE_INVALID
+    MARBLE_PLACEHOLDER // Used during board generation.
 } MarbleType;
 
 #define NUM_MARBLES MARBLE_GOLD + 1 // Should be set to whatever the last "normal" marble type is, plus one.

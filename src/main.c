@@ -15,9 +15,13 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) { return sigmar_SDL_AppQu
 
 #else
 
+#ifdef SIGMAR_TI
+#include "Platform_TI.h"
+#endif
+
 // No other platforms implemented.
-int (main) {
-    return 0;
+int main() {
+    sigmar_Main();
 }
 
 
