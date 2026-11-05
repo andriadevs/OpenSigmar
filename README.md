@@ -1,10 +1,18 @@
-OpenSigmar
+# OpenSigmar
+### An Open Source, Multiplatform Game Inspired By Sigmar's Garden
 
-Work-in-progress open-source multiplatform game inspired by Sigmar's Garden.
+## BUILDING:
 
-Use cmake -S . -B build for initial configuration, and use cmake --build build after build directory has been generated.
+### For Linux:
+Use `cmake --preset linux-x86_64` to setup and `cmake --build build/linux-x86_64` to build.
 
-Run OpenSigmar from the /bin directory.
+### For Windows:
+Install mingw using your distribution's package manager, then use
+`cmake --preset windows-x86_64` to setup and `cmake --build build/windows-x86_64` to build.
 
-NOTES:
-Sounds are not included for legal reasons. Copy "solitaire_select.wav", "solitaire_match.wav", "solitaire_start.wav", and "solitaire_end.wav" from the Content directory of your Opus Magnum installation and cnvert Solitaire.ogg to a .wav file and rename it to "solitaire_music.wav" and place all of these files into the assets/sound directory to have sounds & music.
+### For TI-84 Plus CE:
+TI-84 Plus CE version is currently not yet implemented!
+
+___
+### PLEASE NOTE:
+Sounds from Opus Magnum are not included for legal reasons, but if you own the game you can copy over "solitaire_select.wav", "solitaire_match.wav", "solitaire_start.wav", and "solitaire_end.wav" from the Content folder of your installation into the assets/sound directory for sounds. For music, get the file named "Solitaire.ogg" and convert it using software such as audacity into a .wav file, and rename it to "solitaire_music.wav", and put this file into the assets/sound directory as well.
