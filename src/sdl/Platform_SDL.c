@@ -31,7 +31,8 @@ int sigmar_LoadTextures() {
     SDL_free(surface);
 
     for (int i = 0; i < TEXTURE_INVALID; i++) {
-        strcpy(dir, TEXTURE_DIR);
+        strcpy(dir, SDL_GetBasePath());
+        strcat(dir, TEXTURE_DIR);
         strcat(dir, texture_filename[i]);
         surface = SDL_LoadPNG(dir);
         if (surface) { 
@@ -63,7 +64,8 @@ int sigmar_LoadSounds() {
     SDL_AudioSpec spec;
 
     for (int i = 0; i < SOUND_INVALID; i++) {
-        strcpy(dir, SOUND_DIR);
+        strcpy(dir, SDL_GetBasePath());
+        strcat(dir, SOUND_DIR);
         strcat(dir, sound_filename[i]);
         SDL_LoadWAV(dir, &spec, &app.sound[i], &app.sound_length[i]);
 

@@ -1,0 +1,59 @@
+{
+  "version": 10,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 16,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "linux-x86_64",
+      "displayName": "Linux x86_64",
+      "description": "Build for x86_64 Linux",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux-x86_64",
+      "cacheVariables": {
+        "LIBSIGMAR": { "type": "BOOL", "value": "ON" },
+        "SDL3": { "type": "BOOL", "value": "ON" },
+        "LINUX": { "type": "BOOL", "value": "ON" }
+      }
+    },
+    {
+      "name": "windows-x86_64",
+      "displayName": "Windows x86_64",
+      "description": "Build for x86_64 Windows",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/windows-x86_64",
+      "toolchainFile": "${sourceDir}/src/MINGW.cmake",
+      "cacheVariables": {
+        "LIBSIGMAR": { "type": "BOOL", "value": "ON" },
+        "SDL3": { "type": "BOOL", "value": "ON" },
+        "WINDOWS": { "type": "BOOL", "value": "ON" }
+      }
+    },
+    {
+      "name": "ti84pce",
+      "displayName": "TI-84 Plus CE",
+      "description": "Build for TI-84 Plus CE",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/ti84pce",
+      "cacheVariables": {
+        "TI84PCE": { "type": "BOOL", "value": "ON" }
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-x86_64",
+      "configurePreset": "linux-x86_64"
+    },
+    {
+      "name": "windows-x86_64",
+      "configurePreset": "windows-x86_64"
+    },
+    {
+      "name": "ti84pce",
+      "configurePreset": "ti84pce"
+    }
+  ]
+}
