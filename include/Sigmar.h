@@ -34,7 +34,7 @@ typedef enum : char {
     MARBLE_PLACEHOLDER // Used during board generation.
 } MarbleType;
 
-#define NUM_MARBLES MARBLE_GOLD + 1 // Should be set to whatever the last "normal" marble type is, plus one.
+#define NUM_MARBLES (MARBLE_GOLD + 1) // Should be set to whatever the last "normal" marble type is, plus one.
 
 typedef enum : char {
     MARBLE_LOCKED,

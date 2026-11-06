@@ -7,7 +7,7 @@
 Use `cmake --preset linux-x86_64` to setup and `cmake --build build/linux-x86_64` to build.
 
 ### For Windows:
-Install mingw using your distribution's package manager, then use
+Install mingw using your distribution's package manager and download the SDL3 latest Windows x86_64 release from the SDL3 GitHub repository and put 'libSDL3.dll.a' and 'SDL3.dll' in the lib directory. Then, use
 `cmake --preset windows-x86_64` to setup and `cmake --build build/windows-x86_64` to build.
 
 ### For TI-84 Plus CE:

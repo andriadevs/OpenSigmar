@@ -32,6 +32,10 @@ if (${SDL3})
 
     if (${WINDOWS})
         add_compile_options(-mwindows)
+        add_custom_command( # Copy SDL3.dll from lib to bin
+            TARGET OpenSigmarSDL POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_SOURCE_DIR}/lib/SDL3.dll $<TARGET_FILE_DIR:OpenSigmarSDL>)
     endif() # WINDOWS
 
     target_include_directories(OpenSigmarSDL PRIVATE ${CMAKE_SOURCE_DIR}/include)

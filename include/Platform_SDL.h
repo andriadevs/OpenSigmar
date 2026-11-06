@@ -33,7 +33,17 @@ typedef struct ColorRGBA {
 #define TEXTURE_DIR ASSETS_DIR "texture/"
 #define SOUND_DIR ASSETS_DIR "sound/"
 
-typedef enum {
+typedef enum : char {
+    SIGMAR_ERROR,
+    SIGMAR_OK,
+    SIGMAR_MISSING_TEXTURES, // Returned when some, but not all, texture files failed to load.
+    SIGMAR_NO_TEXTURES, // Returned when all texture files failed to load.
+    SIGMAR_MISSING_SOUNDS, // Returned when some, but not all, sounds files failed to load.
+    SIGMAR_NO_SOUNDS, // Returned when all sound files failed to load.
+    SIGMAR_INVALID
+} SigmarResultSDL;
+
+typedef enum : char {
     TEXTURE_TILE,
     TEXTURE_NUMBER,
     TEXTURE_BACKGROUND,
@@ -52,6 +62,7 @@ typedef enum {
     TEXTURE_WINS,
     TEXTURE_RESET,
     TEXTURE_HOVER,
+    TEXTURE_HIGHLIGHT,
     TEXTURE_MARBLE,
     TEXTURE_MARBLE_OUTLINE,
     TEXTURE_SALT,
@@ -71,6 +82,8 @@ typedef enum {
     TEXTURE_INVALID
 } TextureID;
 
+#define NUM_TEXTURES (TEXTURE_INVALID - 1)
+
 typedef enum {
     SOUND_SELECT,
     SOUND_MATCH,
@@ -80,6 +93,8 @@ typedef enum {
     SOUND_INVALID
 } SoundID;
 
+#define NUM_SOUNDS (SOUND_INVALID - 1)
+
 typedef enum {
     ANIMATION_BOARD_CLEAR,
     ANIMATION_BOARD_GENERATE,
@@ -88,8 +103,13 @@ typedef enum {
 
 typedef enum {
     BUTTON_RESET,
+    BUTTON_HIGHLIGHT,
     BUTTON_INVALID
-} ButtonAction;
+} ButtonType;
+
+typedef union {
+    MarbleType marble_type;
+} ButtonInfo;
 
 static char animation_length[ANIMATION_INVALID] = {
     [ANIMATION_BOARD_CLEAR] = 13,
@@ -115,6 +135,7 @@ static char texture_filename[TEXTURE_INVALID][24] = {
     [TEXTURE_WINS] = "wins.png",
     [TEXTURE_RESET] = "reset.png",
     [TEXTURE_HOVER] = "hover.png",
+    [TEXTURE_HIGHLIGHT] = "highlight.png",
     [TEXTURE_MARBLE] = "marble.png",
     [TEXTURE_MARBLE_OUTLINE] = "marble_outline.png",
     [TEXTURE_SALT] = "salt.png",
@@ -186,6 +207,7 @@ typedef struct {
     float x, y; // Render coordinates for the tile.
     int x_offset, y_offset; // Coordinate offsets used when animating tiles.
     float marble_alpha_mult; // Multiplier applied to the alpha when rendering marbles, used in animations.
+    char highlight; // Whether the tile should be highlighted.
     unsigned int index; // Index of the marble represented by the tile.
 } Tile;
 
@@ -194,14 +216,16 @@ typedef struct {
  */
 typedef struct {
     float x, y;
-    SDL_Texture *texture;
+    TextureID texture;
 } Sprite;
 
 typedef struct {
-    SDL_FRect rect;
-    SDL_Texture *texture;
-    ButtonAction action;
-    float alpha_mult;
+    SDL_FRect bound;
+    char hovered; // Whether or not the mouse is currently hovering this Button
+    char pressed; // Whether or not the mouse is currently pressing this Button
+    ButtonType type;
+    ButtonInfo info;
+    TextureID texture;
 } Button;
 
 /*
@@ -224,7 +248,8 @@ typedef struct {
     int render_height;
     int hud_height;
     SDL_FPoint mouse_position;
-    unsigned int mouse_tile;
+    int mouse_tile; // Index of the tile the mouse hovered over last.
+    int mouse_button; // Index of the button the mouse hovered over last.
     
     float tile_width;
     float tile_height;
@@ -248,61 +273,61 @@ typedef struct {
 /*
  * Loads textures from assets directory and sets the tile_width and tile_height from the dimensions of the tile texture.
  */
-int sigmar_LoadTextures();
+SigmarResultSDL sigmar_LoadTextures();
 
 /*
  * Loads sounds from assets directory.
  */
-int sigmar_LoadSounds();
+SigmarResultSDL sigmar_LoadSounds();
 
 /*
  * Builds the tile array, calculates the render coordinates of all the tiles on the board for later.
  *
  * Also calculates and arranges sprites and any other visual elements that are positioned in relation to the board.
  */
-int sigmar_SetupBoard();
+SigmarResultSDL sigmar_SetupBoard();
 
 /*
  * Renders a single tile on the board, as well as the marble at that location if there is one.
  */
-int sigmar_RenderTile(Tile *tile);
+SigmarResultSDL sigmar_RenderTile(Tile *tile);
 
 /*
  * Renders an integer at the given coordinates.
  */
-int sigmar_RenderNumber(float x, float y, ColorRGBA *color, int number);
+SigmarResultSDL sigmar_RenderNumber(float x, float y, ColorRGBA *color, int number);
 
 /*
  * Renders the background texture.
  */
-int sigmar_RenderBackground();
+SigmarResultSDL sigmar_RenderBackground();
 
 /*
  * Renders the HUD to the screen.
  */
-int sigmar_RenderHud();
+SigmarResultSDL sigmar_RenderHud();
 
 /*
  * Clears the buffer for the given audio stream & plays the sound with the given SoundID.
  */
-int sigmar_PlaySound(SoundID sound, int stream);
+SigmarResultSDL sigmar_PlaySound(SoundID sound, int stream);
 
 /*
  * Continues playing music with the given SoundID, puts data in the buffer if and only if the remaining data in the buffer is less than the amount of data to be added.
  */
-int sigmar_PlayMusic(SoundID sound);
+SigmarResultSDL sigmar_PlayMusic(SoundID sound);
 
 /*
  * Resets animated values to their defaults and sets the current animation to the given AnimationID.
  *
  * Using sigmar_PlayAnimation(ANIMATION_INVALID) cancels any currently playing animation.
  */
-int sigmar_PlayAnimation(AnimationID animation);
+SigmarResultSDL sigmar_PlayAnimation(AnimationID animation);
 
 /*
  * Processes the next animation frame and increments the animation frame counter.
  */
-int sigmar_AnimationFrame(double delta);
+SigmarResultSDL sigmar_AnimationFrame(double delta);
 
 /*
  * Called by main on SDL_AppInit() when SIGMAR_SDL is defined.
@@ -324,7 +349,25 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate);
  */
 void sigmar_SDL_AppQuit(void *appstate, SDL_AppResult result);
 
-void sigmar_OnButtonPress(ButtonAction action);
+/*
+ * Called when the mouse hovers over a button.
+ */
+void sigmar_OnButtonHover(ButtonType type, Button *button);
+
+/*
+ * Called when the mouse is no longer hovering over a button.
+ */
+void sigmar_OnButtonLeave(ButtonType type, Button *button);
+
+/*
+ * Called when the mouse clicks on a button.
+ */
+void sigmar_OnButtonPress(ButtonType type, Button *button);
+
+/*
+ * Called when the mouse is released after clicking on a button.
+ */
+void sigmar_OnButtonRelease(ButtonType type, Button *button);
 
 /*
  * Called when the board is reset.
