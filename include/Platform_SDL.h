@@ -1,8 +1,5 @@
-#ifdef SIGMAR_SDL
 #ifndef OPENSIGMAR_PLATFORM_SDL_H
 #define OPENSIGMAR_PLATFORM_SDL_H
-
-
 
 /*
  * Platform-specific entry point for platforms that use SDL (Linux, etc.)
@@ -20,19 +17,29 @@
 #define NUM_AUDIO_STREAMS 3 // Number of audio streams to use. First stream is always dedicated solely to background music.
 #define BASE_GAIN 0.2f // Base value used for gain, volume minimums and maximums are based on this value.
 
-#define ANIMATION_FPS 20 // Frames-per-second for animations
-
-typedef struct Sigmar Sigmar; // Forward declaration.
-typedef struct SigmarData SigmarData; // Forward declaration.
-
-typedef struct ColorRGBA {
-    Uint8 r, g, b, a;
-} ColorRGBA;
+#define FPS 60 // Target FPS. App iterations are delayed so as to meet this value.
+#define ANIMATION_FPS 30 // Frames-per-second for animations
 
 #define ASSETS_DIR "./assets/"
 #define TEXTURE_DIR ASSETS_DIR "texture/"
 #define SOUND_DIR ASSETS_DIR "sound/"
 
+#define NUM_TEXTURES (TEXTURE_INVALID - 1)
+#define NUM_SOUNDS (SOUND_INVALID - 1)
+
+typedef struct Sigmar Sigmar; // Forward declaration.
+typedef struct SigmarData SigmarData; // Forward declaration.
+
+/*
+ * Stores an RGBA32 color.
+ */
+typedef struct ColorRGBA {
+    Uint8 r, g, b, a;
+} ColorRGBA;
+
+/*
+ * Return codes for various functions.
+ */
 typedef enum : char {
     SIGMAR_ERROR,
     SIGMAR_OK,
@@ -43,6 +50,9 @@ typedef enum : char {
     SIGMAR_INVALID
 } SigmarResultSDL;
 
+/*
+ * Identifiers for valid textures that can be retrieved from the texture array.
+ */
 typedef enum : char {
     TEXTURE_TILE,
     TEXTURE_NUMBER,
@@ -82,9 +92,10 @@ typedef enum : char {
     TEXTURE_INVALID
 } TextureID;
 
-#define NUM_TEXTURES (TEXTURE_INVALID - 1)
-
-typedef enum {
+/*
+ * Identifiers for valid sounds that can be triggered with sigmar_PlaySound()
+ */
+typedef enum : char {
     SOUND_SELECT,
     SOUND_MATCH,
     SOUND_START,
@@ -93,112 +104,30 @@ typedef enum {
     SOUND_INVALID
 } SoundID;
 
-#define NUM_SOUNDS (SOUND_INVALID - 1)
-
-typedef enum {
+/*
+ * Identifiers for valid animations that can be triggered with sigmar_PlayAnimation()
+ */
+typedef enum : char {
     ANIMATION_BOARD_CLEAR,
     ANIMATION_BOARD_GENERATE,
     ANIMATION_INVALID
 } AnimationID;
 
+/*
+ * Identifiers for each unique button type.
+ */
 typedef enum {
     BUTTON_RESET,
     BUTTON_HIGHLIGHT,
     BUTTON_INVALID
 } ButtonType;
 
+/*
+ * Stores info specific to a given button.
+ */
 typedef union {
-    MarbleType marble_type;
+    MarbleType marble_type; // Used by highlight buttons to determine which marble type to highlight.
 } ButtonInfo;
-
-static char animation_length[ANIMATION_INVALID] = {
-    [ANIMATION_BOARD_CLEAR] = 13,
-    [ANIMATION_BOARD_GENERATE] = 13
-};
-
-static char texture_filename[TEXTURE_INVALID][24] = {
-    [TEXTURE_TILE] = "tile_indent.png",
-    [TEXTURE_NUMBER] = "number.png",
-    [TEXTURE_BACKGROUND] = "background.png",
-    [TEXTURE_EDGE_NW] = "border_nw.png",
-    [TEXTURE_EDGE_N] = "border_n.png",
-    [TEXTURE_EDGE_NE] = "border_ne.png",
-    [TEXTURE_EDGE_SE] = "border_se.png",
-    [TEXTURE_EDGE_S] = "border_s.png",
-    [TEXTURE_EDGE_SW] = "border_sw.png",
-    [TEXTURE_CORNER_NW] = "corner_nw.png",
-    [TEXTURE_CORNER_W] = "corner_w.png",
-    [TEXTURE_CORNER_SW] = "corner_sw.png",
-    [TEXTURE_CORNER_SE] = "corner_se.png",
-    [TEXTURE_CORNER_E] = "corner_e.png",
-    [TEXTURE_CORNER_NE] = "corner_ne.png",
-    [TEXTURE_WINS] = "wins.png",
-    [TEXTURE_RESET] = "reset.png",
-    [TEXTURE_HOVER] = "hover.png",
-    [TEXTURE_HIGHLIGHT] = "highlight.png",
-    [TEXTURE_MARBLE] = "marble.png",
-    [TEXTURE_MARBLE_OUTLINE] = "marble_outline.png",
-    [TEXTURE_SALT] = "salt.png",
-    [TEXTURE_FIRE] = "fire.png",
-    [TEXTURE_WATER] = "water.png",
-    [TEXTURE_EARTH] = "earth.png",
-    [TEXTURE_AIR] = "air.png",
-    [TEXTURE_VITAE] = "vitae.png",
-    [TEXTURE_MORS] = "mors.png",
-    [TEXTURE_QUICKSILVER] = "quicksilver.png",
-    [TEXTURE_LEAD] = "lead.png",
-    [TEXTURE_TIN] = "tin.png",
-    [TEXTURE_IRON] = "iron.png",
-    [TEXTURE_COPPER] = "copper.png",
-    [TEXTURE_SILVER] = "silver.png",
-    [TEXTURE_GOLD] = "gold.png"
-};
-
-static char sound_filename[SOUND_INVALID][32] = {
-    [SOUND_SELECT] = "solitaire_select.wav",
-    [SOUND_MATCH] = "solitaire_match.wav",
-    [SOUND_START] = "solitaire_start_short.wav",
-    [SOUND_END] = "solitaire_end.wav",
-    [SOUND_MUSIC] = "solitaire_music.wav"
-};
-
-// Maps a valid MarbleType to its respective symbol texture.
-static int type_symbol[] = {
-    [MARBLE_EMPTY] = TEXTURE_SALT,
-    [MARBLE_SALT] = TEXTURE_SALT,
-    [MARBLE_FIRE] = TEXTURE_FIRE,
-    [MARBLE_WATER] = TEXTURE_WATER,
-    [MARBLE_EARTH] = TEXTURE_EARTH,
-    [MARBLE_AIR] = TEXTURE_AIR,
-    [MARBLE_VITAE] = TEXTURE_VITAE,
-    [MARBLE_MORS] = TEXTURE_MORS,
-    [MARBLE_QUICKSILVER] = TEXTURE_QUICKSILVER,
-    [MARBLE_LEAD] = TEXTURE_LEAD,
-    [MARBLE_TIN] = TEXTURE_TIN,
-    [MARBLE_IRON] = TEXTURE_IRON,
-    [MARBLE_COPPER] = TEXTURE_COPPER,
-    [MARBLE_SILVER] = TEXTURE_SILVER,
-    [MARBLE_GOLD] = TEXTURE_GOLD
-};
-
-// Maps a valid MarbleType to its respective ColorRGBA.
-static ColorRGBA type_color[] = {
-    [MARBLE_SALT] = {190, 190, 170, 255},
-    [MARBLE_FIRE] = {160, 40, 10, 255},
-    [MARBLE_WATER] = {40, 110, 110, 255},
-    [MARBLE_EARTH] = {70, 130, 20, 255},
-    [MARBLE_AIR] = {130, 180, 250, 255},
-    [MARBLE_VITAE] = {200, 175, 150, 255},
-    [MARBLE_MORS] = {60, 60, 50, 255},
-    [MARBLE_QUICKSILVER] = {190, 190, 180, 255},
-    [MARBLE_LEAD] = {120, 140, 140, 255},
-    [MARBLE_TIN] = {180, 180, 150, 255},
-    [MARBLE_IRON] = {110, 90, 90, 255},
-    [MARBLE_COPPER] = {150, 100, 80, 255},
-    [MARBLE_SILVER] = {90, 90, 80, 255},
-    [MARBLE_GOLD] = {160, 100, 45, 255},
-    [MARBLE_EMPTY] = {0, 0, 0, 0},
-};
 
 /*
  * Stores the render coordinates and the index of the represented marble for each tile on the board.
@@ -239,8 +168,6 @@ typedef struct {
     SDL_AudioSpec *audio_spec;
     SDL_AudioStream *audio_stream[3]; // [0]: music, [1]: short, frequent sound effects, [2]: long, infrequent sound effects
     SDL_Texture *texture[TEXTURE_INVALID + 1];
-    Uint8 *sound[SOUND_INVALID];
-    Uint32 sound_length[SOUND_INVALID];
     AnimationID current_animation;
     double animation_position;
     
@@ -270,15 +197,27 @@ typedef struct {
     clock_t last_tick;
 } AppState;
 
+extern const float MILLISECONDS_PER_FRAME;
+
+extern const char animation_length[ANIMATION_INVALID];
+
+extern const char texture_filename[TEXTURE_INVALID][24];
+
+extern const char sound_filename[SOUND_INVALID][36];
+
+extern const int type_symbol[]; // Maps a valid MarbleType to its respective symbol texture.
+
+extern const ColorRGBA type_color[]; // Maps a valid MarbleType to its respective ColorRGBA.
+
 /*
  * Loads textures from assets directory and sets the tile_width and tile_height from the dimensions of the tile texture.
  */
 SigmarResultSDL sigmar_LoadTextures();
 
 /*
- * Loads sounds from assets directory.
+ * Checks for sound files in the assets directory and attempts to set the audio_spec.
  */
-SigmarResultSDL sigmar_LoadSounds();
+SigmarResultSDL sigmar_CheckSounds();
 
 /*
  * Builds the tile array, calculates the render coordinates of all the tiles on the board for later.
@@ -308,14 +247,11 @@ SigmarResultSDL sigmar_RenderBackground();
 SigmarResultSDL sigmar_RenderHud();
 
 /*
- * Clears the buffer for the given audio stream & plays the sound with the given SoundID.
+ * Plays the sound with the given SoundID.
+ * 
+ * If flush == 1, flushes the buffer of the specified audio stream.
  */
-SigmarResultSDL sigmar_PlaySound(SoundID sound, int stream);
-
-/*
- * Continues playing music with the given SoundID, puts data in the buffer if and only if the remaining data in the buffer is less than the amount of data to be added.
- */
-SigmarResultSDL sigmar_PlayMusic(SoundID sound);
+SigmarResultSDL sigmar_PlaySound(SoundID sound, int stream, int flush);
 
 /*
  * Resets animated values to their defaults and sets the current animation to the given AnimationID.
@@ -380,4 +316,3 @@ void sigmar_OnBoardReset();
 void sigmar_OnBoardClear();
 
 #endif //OPENSIGMAR_PLATFORM_SDL_H
-#endif

@@ -1,4 +1,3 @@
-#ifdef SIGMAR_TI
 #ifndef OPENSIGMAR_PLATFORM_TI_H
 #define OPENSIGMAR_PLATFORM_TI_H
 
@@ -13,4 +12,3 @@ int sigmar_Main();
 void sigmar_OnBoardReset();
 
 #endif //OPENSIGMAR_PLATFORM_TI_H
-#endif //SIGMAR_TI

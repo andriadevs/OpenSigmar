@@ -1,6 +1,8 @@
 #ifndef OPENSIGMAR_PLATFORM_H
 #define OPENSIGMAR_PLATFORM_H
 
+typedef struct Sigmar Sigmar; // Forward declaration.
+
 typedef struct SigmarData {
     unsigned long wins;
 

@@ -1,4 +1,3 @@
-#ifdef SIGMAR_SDL
 #include "Platform_SDL.h"
 #include "Platform.h"
 #include "SDL3/SDL_audio.h"
@@ -19,6 +18,95 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+
+const float MILLISECONDS_PER_FRAME = 1000.0f / FPS;
+
+const char animation_length[ANIMATION_INVALID] = {
+    [ANIMATION_BOARD_CLEAR] = 13,
+    [ANIMATION_BOARD_GENERATE] = 13
+};
+
+const char texture_filename[TEXTURE_INVALID][24] = {
+    [TEXTURE_TILE] = "tile_indent.png",
+    [TEXTURE_NUMBER] = "number.png",
+    [TEXTURE_BACKGROUND] = "background.png",
+    [TEXTURE_EDGE_NW] = "border_nw.png",
+    [TEXTURE_EDGE_N] = "border_n.png",
+    [TEXTURE_EDGE_NE] = "border_ne.png",
+    [TEXTURE_EDGE_SE] = "border_se.png",
+    [TEXTURE_EDGE_S] = "border_s.png",
+    [TEXTURE_EDGE_SW] = "border_sw.png",
+    [TEXTURE_CORNER_NW] = "corner_nw.png",
+    [TEXTURE_CORNER_W] = "corner_w.png",
+    [TEXTURE_CORNER_SW] = "corner_sw.png",
+    [TEXTURE_CORNER_SE] = "corner_se.png",
+    [TEXTURE_CORNER_E] = "corner_e.png",
+    [TEXTURE_CORNER_NE] = "corner_ne.png",
+    [TEXTURE_WINS] = "wins.png",
+    [TEXTURE_RESET] = "reset.png",
+    [TEXTURE_HOVER] = "hover.png",
+    [TEXTURE_HIGHLIGHT] = "highlight.png",
+    [TEXTURE_MARBLE] = "marble.png",
+    [TEXTURE_MARBLE_OUTLINE] = "marble_outline.png",
+    [TEXTURE_SALT] = "salt.png",
+    [TEXTURE_FIRE] = "fire.png",
+    [TEXTURE_WATER] = "water.png",
+    [TEXTURE_EARTH] = "earth.png",
+    [TEXTURE_AIR] = "air.png",
+    [TEXTURE_VITAE] = "vitae.png",
+    [TEXTURE_MORS] = "mors.png",
+    [TEXTURE_QUICKSILVER] = "quicksilver.png",
+    [TEXTURE_LEAD] = "lead.png",
+    [TEXTURE_TIN] = "tin.png",
+    [TEXTURE_IRON] = "iron.png",
+    [TEXTURE_COPPER] = "copper.png",
+    [TEXTURE_SILVER] = "silver.png",
+    [TEXTURE_GOLD] = "gold.png"
+};
+
+const char sound_filename[SOUND_INVALID][36] = {
+    [SOUND_SELECT] = "solitaire_select.wav",
+    [SOUND_MATCH] = "solitaire_match.wav",
+    [SOUND_START] = "solitaire_start_short.wav",
+    [SOUND_END] = "solitaire_end.wav",
+    [SOUND_MUSIC] = "solitaire_music.wav"
+};
+
+const int type_symbol[] = {
+    [MARBLE_EMPTY] = TEXTURE_SALT,
+    [MARBLE_SALT] = TEXTURE_SALT,
+    [MARBLE_FIRE] = TEXTURE_FIRE,
+    [MARBLE_WATER] = TEXTURE_WATER,
+    [MARBLE_EARTH] = TEXTURE_EARTH,
+    [MARBLE_AIR] = TEXTURE_AIR,
+    [MARBLE_VITAE] = TEXTURE_VITAE,
+    [MARBLE_MORS] = TEXTURE_MORS,
+    [MARBLE_QUICKSILVER] = TEXTURE_QUICKSILVER,
+    [MARBLE_LEAD] = TEXTURE_LEAD,
+    [MARBLE_TIN] = TEXTURE_TIN,
+    [MARBLE_IRON] = TEXTURE_IRON,
+    [MARBLE_COPPER] = TEXTURE_COPPER,
+    [MARBLE_SILVER] = TEXTURE_SILVER,
+    [MARBLE_GOLD] = TEXTURE_GOLD
+};
+
+const ColorRGBA type_color[] = {
+    [MARBLE_SALT] = {190, 190, 170, 255},
+    [MARBLE_FIRE] = {160, 40, 10, 255},
+    [MARBLE_WATER] = {40, 110, 110, 255},
+    [MARBLE_EARTH] = {70, 130, 20, 255},
+    [MARBLE_AIR] = {130, 180, 250, 255},
+    [MARBLE_VITAE] = {200, 175, 150, 255},
+    [MARBLE_MORS] = {60, 60, 50, 255},
+    [MARBLE_QUICKSILVER] = {190, 190, 180, 255},
+    [MARBLE_LEAD] = {120, 140, 140, 255},
+    [MARBLE_TIN] = {180, 180, 150, 255},
+    [MARBLE_IRON] = {110, 90, 90, 255},
+    [MARBLE_COPPER] = {150, 100, 80, 255},
+    [MARBLE_SILVER] = {90, 90, 80, 255},
+    [MARBLE_GOLD] = {160, 100, 45, 255},
+    [MARBLE_EMPTY] = {0, 0, 0, 0}
+};
 
 static AppState app;
 
@@ -58,20 +146,24 @@ SigmarResultSDL sigmar_LoadTextures() {
 
 }
 
-SigmarResultSDL sigmar_LoadSounds() {
+SigmarResultSDL sigmar_CheckSounds() {
     
     char num_fails = 0;
     char dir[128];
     SDL_AudioSpec spec;
+    Uint8 *audio_buf;
+    Uint32 audio_len;
 
     for (int i = 0; i < SOUND_INVALID; i++) {
         strcpy(dir, SDL_GetBasePath());
         strcat(dir, SOUND_DIR);
         strcat(dir, sound_filename[i]);
-        SDL_LoadWAV(dir, &spec, &app.sound[i], &app.sound_length[i]);
+        SDL_LoadWAV(dir, &spec, &audio_buf, &audio_len);
 
-        if (!app.sound[i]) { SDL_Log("Couldn't load .wav file: %s", SDL_GetError()); num_fails++; }
+        if (!audio_buf) { SDL_Log("Couldn't load .wav file: %s", SDL_GetError()); num_fails++; }
         else { *app.audio_spec = spec; }
+
+        SDL_free(audio_buf);
     }
 
     if (num_fails == 0) { return SIGMAR_OK; }
@@ -80,18 +172,17 @@ SigmarResultSDL sigmar_LoadSounds() {
 }
 
 SigmarResultSDL sigmar_SetupBoard() {
+    const int half_board = (int) (BOARD_SIZE / 2);
 
-    const int half_board = (int) (app.sigmar->board_size / 2);
-
-    app.tiles_length = app.sigmar->board_size * app.sigmar->board_size;
+    app.tiles_length = BOARD_LENGTH;
     app.tiles = (Tile*) malloc(sizeof(Tile) * app.tiles_length);
     int next = 0;
 
-    float hoffs = (app.render_width / 2.0f) - ((app.tile_width - app.tile_width_offset) * (app.sigmar->board_size + 1) * 0.25f) - (app.tile_width_offset * 0.5f);
-    float voffs = ((app.render_height - app.hud_height)  / 2.0f) - ((app.tile_height - app.tile_height_offset) * app.sigmar->board_size * 0.5f) - (app.tile_height_offset * 0.5f);
+    float hoffs = (app.render_width / 2.0f) - ((app.tile_width - app.tile_width_offset) * (BOARD_SIZE + 1) * 0.25f) - (app.tile_width_offset * 0.5f);
+    float voffs = ((app.render_height - app.hud_height)  / 2.0f) - ((app.tile_height - app.tile_height_offset) * BOARD_SIZE * 0.5f) - (app.tile_height_offset * 0.5f);
 
-    for (int y = 0; y < app.sigmar->board_size; y++) {
-        for (int x = 0; x < app.sigmar->board_size; x++) {
+    for (int y = 0; y < BOARD_SIZE; y++) {
+        for (int x = 0; x < BOARD_SIZE; x++) {
             app.tiles[next].index = next;
             app.tiles[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) x - (float) app.tile_width / 2 * (float) y);
             app.tiles[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) y);
@@ -126,13 +217,13 @@ SigmarResultSDL sigmar_SetupBoard() {
         next++;
 
         app.sprites[next].texture = TEXTURE_EDGE_SE;
-        app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) app.sigmar->board_size - (float) app.tile_width / 2 * (float) (half_board + i + 1));
+        app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) BOARD_SIZE - (float) app.tile_width / 2 * (float) (half_board + i + 1));
         app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * (float) (half_board + i + 1));
         next++;
 
         app.sprites[next].texture = TEXTURE_EDGE_S;
         app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * 0.5f + (float) app.tile_width * (float) i);
-        app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * app.sigmar->board_size);
+        app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * BOARD_SIZE);
         next++;
 
         app.sprites[next].texture = TEXTURE_EDGE_SW;
@@ -153,17 +244,17 @@ SigmarResultSDL sigmar_SetupBoard() {
     next++;
 
     app.sprites[next].texture = TEXTURE_CORNER_SW;
-    app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) half_board - (float) app.tile_width / 2 * (float) app.sigmar->board_size);
-    app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * app.sigmar->board_size);
+    app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) half_board - (float) app.tile_width / 2 * (float) BOARD_SIZE);
+    app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * BOARD_SIZE);
     next++;
 
     app.sprites[next].texture = TEXTURE_CORNER_SE;
-    app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) app.sigmar->board_size - (float) app.tile_width / 2 * (float) app.sigmar->board_size);
-    app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * app.sigmar->board_size);
+    app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) BOARD_SIZE - (float) app.tile_width / 2 * (float) BOARD_SIZE);
+    app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * BOARD_SIZE);
     next++;
 
     app.sprites[next].texture = TEXTURE_CORNER_E;
-    app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) app.sigmar->board_size - (float) app.tile_width / 2 * (float) half_board);
+    app.sprites[next].x = hoffs + ((app.tile_width - app.tile_width_offset) * (float) BOARD_SIZE - (float) app.tile_width / 2 * (float) half_board);
     app.sprites[next].y = voffs + ((app.tile_height - app.tile_height_offset) * half_board);
     next++;
 
@@ -185,6 +276,7 @@ SigmarResultSDL sigmar_SetupBoard() {
         64
     };
 
+    // Marble highlighter buttons
     for (int i = 0; i < MARBLE_INVALID; i++) {
         app.buttons[next].bound = rect;
         app.buttons[next].texture = TEXTURE_INVALID;
@@ -197,6 +289,7 @@ SigmarResultSDL sigmar_SetupBoard() {
         next++;
     }
 
+    // Reset button
     app.buttons[next].bound.x = 16.0f;
     app.buttons[next].bound.y = app.render_height - ((app.hud_height / 2.0f) + (app.texture[TEXTURE_WINS]->h / 2.0f));
     app.buttons[next].bound.w = 64.0f;
@@ -208,7 +301,6 @@ SigmarResultSDL sigmar_SetupBoard() {
     next++;
 
     return SIGMAR_OK;
-    
 }
 
 SigmarResultSDL sigmar_RenderTile(Tile *tile) {
@@ -280,9 +372,10 @@ SigmarResultSDL sigmar_RenderNumber(float x, float y, ColorRGBA *color, int numb
 SigmarResultSDL sigmar_RenderBackground() {
     SDL_FRect rect = {0, 0, app.render_width, app.render_height};
 
+    // Background image
     SDL_RenderTexture(app.renderer, app.texture[TEXTURE_BACKGROUND], NULL, &rect);
 
-    // HUD background rendering
+    // HUD background
     rect.y = app.render_height - app.hud_height;
     rect.h = app.hud_height;
 
@@ -337,6 +430,7 @@ SigmarResultSDL sigmar_RenderHud() {
         rect.x += app.tile_width;
     }
 
+    // Wins
     rect.x = app.render_width - 16.0f - app.texture[TEXTURE_WINS]->w;
     rect.y = app.render_height - ((app.hud_height / 2.0f) + (app.texture[TEXTURE_WINS]->h / 2.0f));
     rect.w = app.texture[TEXTURE_WINS]->w;
@@ -347,20 +441,13 @@ SigmarResultSDL sigmar_RenderHud() {
 
     SDL_RenderDebugTextFormat(app.renderer, rect.x + 58, rect.y + 42, "%10lu", app.data->wins);
 
-
-    //rect.x = 16.0f;
-    //SDL_SetTextureAlphaMod(app.texture[TEXTURE_RESET], 200);
-    //SDL_RenderTexture(app.renderer, app.texture[TEXTURE_RESET], NULL, &rect);
-
+    // Buttons
     for (int i = 0; i < app.buttons_length; i++) {
         SDL_SetTextureAlphaMod(app.texture[app.buttons[i].texture], 200);
         SDL_RenderTexture(app.renderer, app.texture[app.buttons[i].texture], NULL, &app.buttons[i].bound);
     }
-    
-    //SDL_RenderDebugTextFormat(app.renderer, rect.x + 30, rect.y + 18, "WINS:");
-    
-    //SDL_RenderDebugTextFormat(app.renderer, rect.x + 30, rect.y + 30, "%lu", app.data->wins);
 
+    // Board clear message
     if (app.is_board_clear) {
         rect.x=app.render_width / 2.0f - 200;
         rect.y=app.render_height / 2.0f - 50;
@@ -378,25 +465,23 @@ SigmarResultSDL sigmar_RenderHud() {
     return SIGMAR_OK;
 }
 
-SigmarResultSDL sigmar_PlaySound(SoundID sound, int stream) {
+SigmarResultSDL sigmar_PlaySound(SoundID sound, int stream, int flush) {
+    SDL_AudioSpec spec;
+    Uint8 *audio_buf;
+    Uint32 audio_len;
 
-    if (stream == 0 || // Sounds cannot be played in stream 0.
-        app.sound[sound] == NULL) { return 1; }
+    char dir[256];
+    strcpy(dir, SDL_GetBasePath());
+    strcat(dir, SOUND_DIR);
+    strcat(dir, sound_filename[sound]);
 
-    SDL_ClearAudioStream(app.audio_stream[stream]);
-    SDL_PutAudioStreamData(app.audio_stream[stream], app.sound[sound], app.sound_length[sound]);
+    SDL_LoadWAV(dir, &spec, &audio_buf, &audio_len);
+    if (!audio_buf) { return SIGMAR_ERROR; }
 
-    return SIGMAR_OK;
-}
+    if (flush) { SDL_ClearAudioStream(app.audio_stream[stream]); }
+    SDL_PutAudioStreamData(app.audio_stream[stream], audio_buf, audio_len);
 
-SigmarResultSDL sigmar_PlayMusic(SoundID sound) {
-    if (app.sound[sound] == NULL) { return 1; }
-
-    // Add more data to the buffer if the currently queued data is shorter than the song to be queued.
-    if (SDL_GetAudioStreamQueued(app.audio_stream[0]) < (int) app.sound_length[sound]) {
-        SDL_PutAudioStreamData(app.audio_stream[0], app.sound[sound], app.sound_length[sound]);
-    }
-
+    SDL_free(audio_buf);
     return SIGMAR_OK;
 }
 
@@ -420,16 +505,16 @@ SigmarResultSDL sigmar_AnimationFrame(double delta) {
 
     int i, x, y;
     double dist;
-    const int frame = (int) (app.animation_position * ANIMATION_FPS);
-    const int center_tile = (int) app.sigmar->board_size * app.sigmar->board_size * 0.5;
-    const int center_x = center_tile % app.sigmar->board_size;
-    const int center_y = center_tile / app.sigmar->board_size;
+    const int frame = (int) (app.animation_position * MILLISECONDS_PER_FRAME * ANIMATION_FPS);
+    const int center_tile = (int) BOARD_LENGTH * 0.5;
+    const int center_x = center_tile % BOARD_SIZE;
+    const int center_y = center_tile / BOARD_SIZE;
 
     switch (app.current_animation) {
         case ANIMATION_BOARD_CLEAR:
             for (i = 0; i < app.tiles_length; i++) {
-                x = i % app.sigmar->board_size;
-                y = i / app.sigmar->board_size;
+                x = i % BOARD_SIZE;
+                y = i / BOARD_SIZE;
                 dist = SDL_sqrt(SDL_pow(x - center_x, 2) + SDL_pow(y - center_y, 2));
 
                 if (dist <= frame + 0.5f && dist >= frame - 0.5f) { app.tiles[i].y_offset = -2; }
@@ -439,8 +524,8 @@ SigmarResultSDL sigmar_AnimationFrame(double delta) {
 
         case ANIMATION_BOARD_GENERATE:
             for (i = 0; i < app.tiles_length; i++) {
-                x = i % app.sigmar->board_size;
-                y = i / app.sigmar->board_size;
+                x = i % BOARD_SIZE;
+                y = i / BOARD_SIZE;
                 dist = SDL_sqrt(SDL_pow(x - center_x, 2) + SDL_pow(y - center_y, 2));
 
                 if (dist <= frame + 0.5f) {
@@ -546,8 +631,8 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     app.audio_spec = malloc(sizeof(SDL_AudioSpec));
 
-    // Load Sounds
-    rc = sigmar_LoadSounds();
+    // Check Sounds
+    rc = sigmar_CheckSounds();
     if (rc == SIGMAR_OK || rc == SIGMAR_MISSING_SOUNDS) {
         // Initialize Audio Streams
         for (int i = 0; i < NUM_AUDIO_STREAMS; i++) {
@@ -564,7 +649,6 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
         SDL_SetAudioStreamGain(app.audio_stream[0], BASE_GAIN * app.data->music_volume);
 
     } else if (rc == SIGMAR_NO_SOUNDS) { SDL_Log("No sound files found, audio streams will not be initialized."); }
-        
 
     // Load Textures
     rc = sigmar_LoadTextures();
@@ -642,15 +726,15 @@ SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
 
                     switch (rc) {
                         case SELECT_SUCCESS:
-                            sigmar_PlaySound(SOUND_SELECT, 1);
+                            sigmar_PlaySound(SOUND_SELECT, 1, 1);
                             break;
 
                         case SELECT_DESELECT:
-                            sigmar_PlaySound(SOUND_SELECT, 1);
+                            sigmar_PlaySound(SOUND_SELECT, 1, 1);
                             break;
 
                         case SELECT_MATCH:
-                            sigmar_PlaySound(SOUND_MATCH, 1);
+                            sigmar_PlaySound(SOUND_MATCH, 1, 1);
                             break;
 
                         default:
@@ -689,7 +773,6 @@ SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
 
 
 SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
-
     SDL_FRect rect;
 
     clock_t tick = clock();
@@ -710,7 +793,7 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
     SDL_SetRenderDrawColor(app.renderer, 255, 100, 0, SDL_ALPHA_OPAQUE);
     rect.w = app.tile_width;
     rect.h = app.tile_height;
-    for (int i = 0; i < app.sigmar->board_size * app.sigmar->board_size; i++) {
+    for (int i = 0; i < BOARD_LENGTH; i++) {
         if (app.sigmar->board[app.tiles[i].index].type != MARBLE_INVALID) { sigmar_RenderTile(&app.tiles[i]); }
     }
 
@@ -735,23 +818,21 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
 
     SDL_RenderPresent(app.renderer);
 
-    sigmar_PlayMusic(SOUND_MUSIC);
+    if (SDL_GetAudioStreamQueued(app.audio_stream[0]) < 100) {
+        sigmar_PlaySound(SOUND_MUSIC, 0, 0);
+    }
+
+    SDL_Delay(MILLISECONDS_PER_FRAME - delta);
 
     return SDL_APP_CONTINUE;
 }
 
 void sigmar_SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    
     sigmar_SaveData(app.data);
-
 }
 
 void sigmar_OnButtonHover(ButtonType type, Button *button) {
     switch (type) {
-        case BUTTON_HIGHLIGHT:
-            //button->texture = TEXTURE_MARBLE;
-            break;
-
         default:
             break;
     }
@@ -759,10 +840,6 @@ void sigmar_OnButtonHover(ButtonType type, Button *button) {
 
 void sigmar_OnButtonLeave(ButtonType type, Button *button) {
     switch (type) {
-        case BUTTON_HIGHLIGHT:
-            button->texture = TEXTURE_INVALID;
-            break;
-
         default:
             break;
     }
@@ -803,19 +880,15 @@ void sigmar_OnButtonRelease(ButtonType type, Button *button) {
 }
 
 void sigmar_OnBoardReset() {
-
     app.is_board_clear = 0;
-    sigmar_PlaySound(SOUND_START, 2);
+    app.last_tick = clock();
+    sigmar_PlaySound(SOUND_START, 2, 1);
     sigmar_PlayAnimation(ANIMATION_BOARD_GENERATE);
-
 }
 
 void sigmar_OnBoardClear() {
-
     app.is_board_clear = 1;
     app.data->wins++;
-    sigmar_PlaySound(SOUND_END, 2);
+    sigmar_PlaySound(SOUND_END, 2, 1);
     sigmar_PlayAnimation(ANIMATION_BOARD_CLEAR);
-
 }
-#endif

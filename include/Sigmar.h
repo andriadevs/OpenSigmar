@@ -11,6 +11,11 @@
 
 #define MAX_SELECTED 4
 
+#define BOARD_SIZE 11
+#define BOARD_LENGTH (BOARD_SIZE * BOARD_SIZE)
+#define CENTER_TILE ((int)(BOARD_LENGTH * 0.5)) // Index of the center tile of the board.
+#define CENTER_ROW ((CENTER_TILE - (int)(BOARD_SIZE * 0.5))) // Index of the first tile of the center row of the board.
+
 // DO NOT MODIFY THIS ENUM UNLESS YOU KNOW WHAT YOU ARE DOING
 // It is important to several calculations that they are ordered as they are.
 //
@@ -96,6 +101,8 @@ typedef void (* EventCallback)(void);
 
 static char pattern[] = PATTERN;
 
+extern const unsigned char bag_counts[NUM_MARBLES];
+
 /*
  * Game state structure.
  */
@@ -104,15 +111,14 @@ typedef struct Sigmar {
 
     unsigned int turn; // Turn counter. (Unused)
 
-    unsigned short board_size; // Size of the board.
-    Marble *board; // Array of Marble states for each slot on the board.
-
+    Marble board[BOARD_LENGTH]; // Array of Marble states for each slot on the board.
     char marble_counts[NUM_MARBLES]; // Counts of each marble type on the board.
 
-    // Array of previously selected marbles.
+    // Array of previously selected marbles types & indicies.
     // Typically only the first index is used except in cases where more than two marbles can be matched.
     // The first index is considered the primary selection, the rest are considered auxillary selections.
-    SelectedMarble prev_selected[MAX_SELECTED];
+    MarbleType prev_selected[MAX_SELECTED];
+    int prev_selected_indices[MAX_SELECTED];
     int num_selected; // Number of previously selected marbles.
 
     EventCallback callback[EVENT_INVALID]; // Callback functions for each valid EventID.
@@ -126,17 +132,17 @@ int sigmar_Init(Sigmar **sigmar);
 /*
  * Binds an event callback function to the given EventID.
  */
-int sigmar_Bind(Sigmar *sigmar, EventID event, EventCallback callback);
+void sigmar_Bind(Sigmar *sigmar, EventID event, EventCallback callback);
 
 /*
  * Unbinds the event callback function from the given EventID.
  */
-int sigmar_Unbind(Sigmar *sigmar, EventID event);
+void sigmar_Unbind(Sigmar *sigmar, EventID event);
 
 /*
- * Resets the game & generates a new board.
+ * Generates a new board.
  */
-int sigmar_ResetBoard(Sigmar *sigmar);
+void sigmar_ResetBoard(Sigmar *sigmar);
 
 /*
  * Attempts to generate a new board.
@@ -161,24 +167,24 @@ SelectResult sigmar_Select(Sigmar* sigmar, unsigned int index);
 /*
  * Calculates the offsets of the six indices adjacent to any given index.
  */
-int sigmar_CalcAdjacencyOffsets(const Sigmar* sigmar, int adj[6]);
+void sigmar_CalcAdjacencyOffsets(const Sigmar* sigmar, int adj[6]);
 
 /*
  * Checks whether or not the marble at a given index is free.
  */
-int sigmar_IsFree(Sigmar* sigmar, unsigned int index, MarbleState* result);
+void sigmar_IsFree(Sigmar* sigmar, unsigned int index, MarbleState* result);
 
 /*
  * Checks whether or not the marble at a given index is blocked by adjacent marbles.
  */
-int sigmar_IsBlocked(Sigmar* sigmar, unsigned int index, MarbleState* result);
+void sigmar_IsBlocked(Sigmar* sigmar, unsigned int index, MarbleState* result);
 
 /*
  * Checks whether a given marble can be matched with previously selected marbles.
  * 
  * Returns MATCH_SUCCESS if match is successful, or MATCH_FAIL if match is unsuccessful.
  */
-MatchResult sigmar_Matches(Sigmar *sigmar, SelectedMarble *prev_selected, int num_selected, Marble selection);
+MatchResult sigmar_Matches(MarbleType *prev_selected, int num_selected, MarbleType selection);
 
 /*
  * Returns 1 if the board has been cleared, 0 otherwise.
@@ -188,6 +194,16 @@ int sigmar_IsBoardClear(Sigmar *sigmar);
 /*
  * Updates the state of all marbles on the board.
  */
-int sigmar_UpdateMarbles(Sigmar *sigmar);
+void sigmar_UpdateMarbles(Sigmar *sigmar);
+
+/*
+ * Loads the board data of a previously exported board.
+ */
+int sigmar_ImportBoard(Sigmar *sigmar, const char *board_data);
+
+/*
+ * Exports the current board to a character array that can be later read by sigmar_ImportBoard()
+ */
+int sigmar_ExportBoard(Sigmar *sigmar, char *board_data);
 
 #endif //OPENSIGMAR_SIGMAR_H

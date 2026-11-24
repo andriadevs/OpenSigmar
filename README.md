@@ -3,12 +3,14 @@
 
 ## BUILDING:
 
+All instructions assume binaries are being built from an x86_64 Linux system.
+
 ### For Linux:
-Use `cmake --preset linux-x86_64` to setup and `cmake --build build/linux-x86_64` to build.
+Use `cmake --preset linux-x86_64` to setup the build directory and `cmake --build build/linux-x86_64` to build.
 
 ### For Windows:
-Install mingw using your distribution's package manager and download the SDL3 latest Windows x86_64 release from the SDL3 GitHub repository and put 'libSDL3.dll.a' and 'SDL3.dll' in the lib directory. Then, use
-`cmake --preset windows-x86_64` to setup and `cmake --build build/windows-x86_64` to build.
+Install mingw using your distribution's package manager and download the SDL3 latest Windows x86_64 release from the SDL3 GitHub repository and put 'libSDL3.dll.a' and 'SDL3.dll' in the lib directory.
+Then, use `cmake --preset windows-x86_64` to setup the build directory and `cmake --build build/windows-x86_64` to build.
 
 ### For TI-84 Plus CE:
 TI-84 Plus CE version is currently not yet implemented!
