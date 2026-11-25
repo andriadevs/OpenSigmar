@@ -16,4 +16,14 @@ int sigmar_LoadData(SigmarData *data);
 
 int sigmar_SaveData(SigmarData *data);
 
+/*
+ * Pregenerates 'count' boards and stores them according to the platform implementation.
+ */
+int sigmar_PregenerateBoards(Sigmar *sigmar, unsigned int count);
+
+/*
+ * Loads a random board previously generated using sigmar_PregenerateBoards().
+ */
+int sigmar_LoadBoard(Sigmar *sigmar);
+
 #endif //OPENSIGMAR_PLATFORM_H

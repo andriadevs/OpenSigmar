@@ -15,6 +15,8 @@
 #include "SDL3/SDL_video.h"
 #include "Sigmar.h"
 
+#include <limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -67,7 +69,7 @@ const char texture_filename[TEXTURE_INVALID][24] = {
 const char sound_filename[SOUND_INVALID][36] = {
     [SOUND_SELECT] = "solitaire_select.wav",
     [SOUND_MATCH] = "solitaire_match.wav",
-    [SOUND_START] = "solitaire_start_short.wav",
+    [SOUND_START] = "solitaire_start.wav",
     [SOUND_END] = "solitaire_end.wav",
     [SOUND_MUSIC] = "solitaire_music.wav"
 };
@@ -561,23 +563,81 @@ int sigmar_DataInit(SigmarData **data) {
 }
 
 int sigmar_LoadData(SigmarData *data) {
-    size_t filesize = sizeof(SigmarData);
-    SigmarData *file = (SigmarData *) SDL_LoadFile("./sav", &filesize);
-
+    SDL_IOStream *file = SDL_IOFromFile(SAVE_FILE, "rb");
     if (!file) { return 1; }
 
-    data->wins = file->wins;
-    
-    data->music_volume = file->music_volume;
-    data->sound_volume = file->sound_volume;
+    SDL_SeekIO(file, sizeof(SAVE_FILE_HEADER), SEEK_CUR);
 
-    SDL_free(file);
+    SDL_ReadIO(file, data, sizeof(SigmarData));
+    
+    SDL_CloseIO(file);
 
     return 0;
 }
 
 int sigmar_SaveData(SigmarData *data) {
-    SDL_SaveFile("./sav", data, sizeof(SigmarData));
+    SDL_IOStream *file = SDL_IOFromFile(SAVE_FILE, "wb");
+    if (!file) { return 1; }
+
+    char header[] = SAVE_FILE_HEADER;
+    SDL_WriteIO(file, &header, sizeof(header));
+
+    SDL_WriteIO(file, data, sizeof(SigmarData));
+    
+    SDL_CloseIO(file);
+
+    return 0;
+}
+
+int sigmar_PregenerateBoards(Sigmar *sigmar, unsigned int count) {
+    char board_data[56];
+
+    SDL_IOStream *file = SDL_IOFromFile(DATA_FILE, "wb");
+    if (!file) { return 1; }
+
+    char header[] = DATA_FILE_HEADER;
+    SDL_WriteIO(file, &header, sizeof(header));
+
+    SDL_WriteIO(file, &count, sizeof(unsigned int));
+
+    unsigned int seed = time(NULL);
+
+    for (int i = 0; i < count; i++) {
+        sigmar_GenerateBoard(sigmar, seed++);
+        sigmar_SerializeBoard(sigmar, board_data);
+        SDL_WriteIO(file, board_data, 56);
+    }
+
+    SDL_CloseIO(file);
+
+    return 0;
+}
+
+int sigmar_LoadBoard(Sigmar *sigmar) {
+    char board_data[56];
+
+    SDL_IOStream *file = SDL_IOFromFile(DATA_FILE, "rb");
+    if (!file) { return 1; }
+
+    SDL_SeekIO(file, sizeof(DATA_FILE_HEADER), SEEK_CUR);
+
+    unsigned int count;
+    SDL_ReadIO(file, &count, sizeof(unsigned int));
+    
+    if (app.last_board == UINT_MAX) { app.last_board = rand() % count; }
+    else if (app.last_board >= count) { app.last_board = 0; }
+
+    int offs = app.last_board * 56;
+    app.last_board++;
+
+    //printf("Offs: %i\n", offs);
+
+    SDL_SeekIO(file, offs, SEEK_CUR);
+    SDL_ReadIO(file, board_data, 56);
+
+    sigmar_DeserializeBoard(sigmar, board_data);
+    
+    SDL_CloseIO(file);
 
     return 0;
 }
@@ -600,6 +660,7 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
     app.tiles_length = 0;
     app.current_animation = ANIMATION_INVALID;
     app.animation_position = 0;
+    app.last_board = UINT_MAX;
 
     rc = sigmar_DataInit(&(app.data));
 
@@ -610,7 +671,21 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     if (rc != 0) { return SDL_APP_FAILURE; }
 
-    SDL_SetAppMetadata("OpenSigmar", "1.0", "com.andria.opensigmar");
+    // If "-g [number]" is used when executing this program, pregenerate 'number' boards & put them in the data file.
+    if (argc == 3 && !memcmp("-g", argv[1], 3)) {
+        printf("Generating new boards!\n");
+        fflush(NULL);
+        int count = atoi(argv[2]);
+
+        sigmar_PregenerateBoards(app.sigmar, count);
+        
+        return SDL_APP_SUCCESS;
+    }
+
+    sigmar_Reset(app.sigmar);
+    sigmar_LoadBoard(app.sigmar);
+
+    SDL_SetAppMetadata("OpenSigmar", "0.1", "com.andria.opensigmar");
 
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
@@ -666,7 +741,6 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
 }
 
 SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
-
     int i;
     SDL_FRect bounds;
     Marble *marble;
@@ -758,7 +832,7 @@ SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
         case SDL_EVENT_KEY_DOWN:
             // Temporary key to reset the board, will be replaced with a proper configurable reset key later on.
             if (event->key.key == SDLK_SPACE) {
-                sigmar_ResetBoard(app.sigmar);
+                sigmar_Reset(app.sigmar);
             }
 
             return SDL_APP_CONTINUE;
@@ -783,7 +857,7 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
     sigmar_AnimationFrame(delta);
 
     // Clear render
-    SDL_SetRenderDrawColor(app.renderer, 33, 33, 33, SDL_ALPHA_OPAQUE);
+    SDL_SetRenderDrawColor(app.renderer, 30, 30, 30, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(app.renderer);
 
     // Render background
@@ -856,7 +930,7 @@ void sigmar_OnButtonPress(ButtonType type, Button *button) {
             break;
 
         case BUTTON_RESET:
-            sigmar_ResetBoard(app.sigmar);
+            sigmar_Reset(app.sigmar);
             break;
 
         default:
@@ -880,6 +954,7 @@ void sigmar_OnButtonRelease(ButtonType type, Button *button) {
 }
 
 void sigmar_OnBoardReset() {
+    sigmar_LoadBoard(app.sigmar);
     app.is_board_clear = 0;
     app.last_tick = clock();
     sigmar_PlaySound(SOUND_START, 2, 1);
@@ -892,3 +967,4 @@ void sigmar_OnBoardClear() {
     sigmar_PlaySound(SOUND_END, 2, 1);
     sigmar_PlayAnimation(ANIMATION_BOARD_CLEAR);
 }
+

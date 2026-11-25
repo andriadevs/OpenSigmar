@@ -2,8 +2,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-
 #include <stdio.h>
 
 const unsigned char bag_counts[NUM_MARBLES] = {
@@ -23,23 +21,17 @@ const unsigned char bag_counts[NUM_MARBLES] = {
     [MARBLE_GOLD] = 1
 };
 
+const unsigned char patterns[NUM_PATTERNS][55] = {
+    [0] = {4,11,12,13,14,15,16,23,24,27,28,34,36,37,38,40,45,47,48,49,50,52,53,56,57,58,59,60,61,62,63,64,67,68,70,71,72,73,75,80,82,83,84,86,92,93,96,97,104,105,106,107,108,109,116},
+    [1] = {4,11,12,13,14,15,16,23,24,27,28,34,36,37,38,40,45,47,48,49,50,52,53,56,57,58,59,60,61,62,63,64,67,68,70,71,72,73,75,80,82,83,84,86,92,93,96,97,104,105,106,107,108,109,116}
+};
+
 int sigmar_Init(Sigmar** sigmar) {
-    int rc;
-
     *sigmar = (Sigmar*) malloc(sizeof(Sigmar));
-
-    (*sigmar)->turn = 0;
-
-    memset((*sigmar)->marble_counts, 0, (int) NUM_MARBLES);
 
     sigmar_CalcAdjacencyOffsets((*sigmar), (*sigmar)->adjacency_offsets);
 
-    rc = GENERATION_FAIL;
-    while (rc != GENERATION_SUCCESS) {
-        rc = sigmar_GenerateBoard(*sigmar);
-    }
-
-    (*sigmar)->num_selected = 0;
+    sigmar_Reset(*sigmar);
 
     return 0;
 }
@@ -48,17 +40,22 @@ void sigmar_Bind(Sigmar *sigmar, EventID event, EventCallback callback) { sigmar
 
 void sigmar_Unbind(Sigmar *sigmar, EventID event) { sigmar->callback[event] = NULL; }
 
-void sigmar_ResetBoard(Sigmar *sigmar) {
+void sigmar_Reset(Sigmar *sigmar) {
     if (sigmar == NULL) { return; }
-
-    int rc;
 
     sigmar->turn = 0;
     sigmar->num_selected = 0;
 
-    rc = GENERATION_FAIL;
-    while (rc != GENERATION_SUCCESS) {
-        rc = sigmar_GenerateBoard(sigmar);
+    memset(sigmar->marble_counts, 0, (int) NUM_MARBLES);
+
+    for (int i = 0; i < BOARD_LENGTH; i++) { sigmar->board[i].type = MARBLE_EMPTY; sigmar->board[i].state = MARBLE_LOCKED; }
+
+    // This chunk of code calculates the corners of the board that should be chopped off to make the board properly hexagonal.
+    for (int i = 1; i <= BOARD_SIZE / 2; i++) {
+        for (int x = 1; x < i + 1; x++) {
+            sigmar->board[CENTER_ROW - (BOARD_SIZE * (i - 1)) - x].type = MARBLE_INVALID;
+            sigmar->board[CENTER_ROW + (BOARD_SIZE * i) + x - 1].type = MARBLE_INVALID;
+        }
     }
 
     if (sigmar->callback[EVENT_BOARD_RESET] != NULL) { sigmar->callback[EVENT_BOARD_RESET](); }
@@ -76,7 +73,9 @@ int sigmar_ShuffleEasy(Sigmar *sigmar, unsigned char *shuffled_tiles, unsigned c
     int aux_adjacent_tile;
     int aux_contiguous_free_count;
 
-    int valid_tiles[] = PATTERN;
+    unsigned char valid_tiles[BOARD_LENGTH];
+    memset(valid_tiles, 0, BOARD_LENGTH);
+    for (int i = 0; i < 55; i++) { valid_tiles[patterns[sigmar->pattern][i]] = 1; }
 
     int free_tiles[BOARD_LENGTH];
     int free_tiles_length = 0;
@@ -155,7 +154,7 @@ int sigmar_ShuffleEasy(Sigmar *sigmar, unsigned char *shuffled_tiles, unsigned c
 
                     if (adjacent_tile >= 0 &&
                         adjacent_tile < BOARD_LENGTH &&
-                        pattern[adjacent_tile] == 1 &&
+                        valid_tiles[adjacent_tile] &&
                         sigmar->board[adjacent_tile].type == MARBLE_EMPTY)
                     { sigmar->board[adjacent_tile].type = MARBLE_PLACEHOLDER; free_tiles[free_tiles_length] = adjacent_tile; free_tiles_length++; }
                 }
@@ -171,9 +170,9 @@ int sigmar_ShuffleEasy(Sigmar *sigmar, unsigned char *shuffled_tiles, unsigned c
 int sigmar_ShuffleHard(Sigmar *sigmar, unsigned char *shuffled_tiles, unsigned char *shuffled_tiles_length) {
     // Completely randomizes the shuffled_tiles array.
     unsigned char i, r, t;
-    
-    for (i = 0; i < BOARD_LENGTH; i++) {
-        if (pattern[i] && i != CENTER_TILE) { shuffled_tiles[*shuffled_tiles_length] = i; (*shuffled_tiles_length)++; }
+
+    for (i = 0; i < 55; i++) {
+        if (patterns[sigmar->pattern][i] != CENTER_TILE) { shuffled_tiles[*shuffled_tiles_length] = patterns[sigmar->pattern][i]; (*shuffled_tiles_length)++; }
     }
 
     for (i = 0; i < *shuffled_tiles_length; i++) {
@@ -186,96 +185,90 @@ int sigmar_ShuffleHard(Sigmar *sigmar, unsigned char *shuffled_tiles, unsigned c
     return 1;
 }
 
-GenerationResult sigmar_GenerateBoard(Sigmar *sigmar) {
+GenerationResult sigmar_GenerateBoard(Sigmar *sigmar, unsigned int seed) {
     if (sigmar == NULL) { return GENERATION_ERROR; }
 
-    srand(time(NULL));
-
-    memset(sigmar->marble_counts, 0, (int) NUM_MARBLES);
-
-    for (int i = 0; i < BOARD_LENGTH; i++) { sigmar->board[i].type = MARBLE_EMPTY; sigmar->board[i].state = MARBLE_LOCKED; }
-
-    MarbleType bag[][2] = {
-        {MARBLE_SALT, MARBLE_SALT},
-        {MARBLE_SALT, MARBLE_SALT},
-        {MARBLE_FIRE, MARBLE_FIRE},
-        {MARBLE_FIRE, MARBLE_FIRE},
-        {MARBLE_FIRE, MARBLE_FIRE},
-        {MARBLE_FIRE, MARBLE_FIRE},
-        {MARBLE_WATER, MARBLE_WATER},
-        {MARBLE_WATER, MARBLE_WATER},
-        {MARBLE_WATER, MARBLE_WATER},
-        {MARBLE_WATER, MARBLE_WATER},
-        {MARBLE_EARTH, MARBLE_EARTH},
-        {MARBLE_EARTH, MARBLE_EARTH},
-        {MARBLE_EARTH, MARBLE_EARTH},
-        {MARBLE_EARTH, MARBLE_EARTH},
-        {MARBLE_AIR, MARBLE_AIR},
-        {MARBLE_AIR, MARBLE_AIR},
-        {MARBLE_AIR, MARBLE_AIR},
-        {MARBLE_AIR, MARBLE_AIR},
-        {MARBLE_VITAE, MARBLE_MORS},
-        {MARBLE_VITAE, MARBLE_MORS},
-        {MARBLE_VITAE, MARBLE_MORS},
-        {MARBLE_VITAE, MARBLE_MORS},
-        {MARBLE_QUICKSILVER, MARBLE_SILVER},
-        {MARBLE_QUICKSILVER, MARBLE_COPPER},
-        {MARBLE_QUICKSILVER, MARBLE_IRON},
-        {MARBLE_QUICKSILVER, MARBLE_TIN},
-        {MARBLE_QUICKSILVER, MARBLE_LEAD}
-    };
-
-    // This chunk of code calculates the corners of the board that should be chopped off to make the board properly hexagonal.
-    for (int i = 1; i <= BOARD_SIZE / 2; i++) {
-        for (int x = 1; x < i + 1; x++) {
-            sigmar->board[CENTER_ROW - (BOARD_SIZE * (i - 1)) - x].type = MARBLE_INVALID;
-            sigmar->board[CENTER_ROW + (BOARD_SIZE * i) + x - 1].type = MARBLE_INVALID;
-        }
-    }
-
-    sigmar->board[CENTER_TILE].type = MARBLE_GOLD;
-    sigmar->marble_counts[MARBLE_GOLD] += 1;
+    sigmar->pattern = 1;
 
     unsigned char shuffled_tiles[BOARD_LENGTH];
     unsigned char shuffled_tiles_length = 0;
 
-    if (!sigmar_ShuffleEasy(sigmar, shuffled_tiles, &shuffled_tiles_length)) { return GENERATION_FAIL; }
-    //if (!sigmar_ShuffleHard(sigmar, shuffled_tiles, &shuffled_tiles_length)) { return GENERATION_FAIL; }
+    srand(seed);
 
-    for (int i = 0; i < shuffled_tiles_length; i+=2) {
-        int picked = 0;
+    do {
+        sigmar_Reset(sigmar);
 
-        while (!picked) {
-            int c = rand() % 27;
+        MarbleType bag[][2] = {
+            {MARBLE_SALT, MARBLE_SALT},
+            {MARBLE_SALT, MARBLE_SALT},
+            {MARBLE_FIRE, MARBLE_FIRE},
+            {MARBLE_FIRE, MARBLE_FIRE},
+            {MARBLE_FIRE, MARBLE_FIRE},
+            {MARBLE_FIRE, MARBLE_FIRE},
+            {MARBLE_WATER, MARBLE_WATER},
+            {MARBLE_WATER, MARBLE_WATER},
+            {MARBLE_WATER, MARBLE_WATER},
+            {MARBLE_WATER, MARBLE_WATER},
+            {MARBLE_EARTH, MARBLE_EARTH},
+            {MARBLE_EARTH, MARBLE_EARTH},
+            {MARBLE_EARTH, MARBLE_EARTH},
+            {MARBLE_EARTH, MARBLE_EARTH},
+            {MARBLE_AIR, MARBLE_AIR},
+            {MARBLE_AIR, MARBLE_AIR},
+            {MARBLE_AIR, MARBLE_AIR},
+            {MARBLE_AIR, MARBLE_AIR},
+            {MARBLE_VITAE, MARBLE_MORS},
+            {MARBLE_VITAE, MARBLE_MORS},
+            {MARBLE_VITAE, MARBLE_MORS},
+            {MARBLE_VITAE, MARBLE_MORS},
+            {MARBLE_QUICKSILVER, MARBLE_SILVER},
+            {MARBLE_QUICKSILVER, MARBLE_COPPER},
+            {MARBLE_QUICKSILVER, MARBLE_IRON},
+            {MARBLE_QUICKSILVER, MARBLE_TIN},
+            {MARBLE_QUICKSILVER, MARBLE_LEAD}
+        };
 
-            if (c < 22) {
-                if (bag[c][0] != MARBLE_INVALID) {
-                    sigmar->marble_counts[bag[c][0]]++;
-                    sigmar->marble_counts[bag[c][1]]++;
-                    sigmar->board[shuffled_tiles[i]].type = bag[c][0];
-                    sigmar->board[shuffled_tiles[i + 1]].type = bag[c][1];
-                    bag[c][0] = MARBLE_INVALID;
-                    picked = 1;
-                }
-            } else {
-                for (int x = 22; x < 27; x++) {
-                    if (bag[x][0] != MARBLE_INVALID) {
-                        sigmar->marble_counts[bag[x][0]]++;
-                        sigmar->marble_counts[bag[x][1]]++;
-                        sigmar->board[shuffled_tiles[i]].type = bag[x][0];
-                        sigmar->board[shuffled_tiles[i + 1]].type = bag[x][1];
-                        bag[x][0] = MARBLE_INVALID;
+        sigmar->board[CENTER_TILE].type = MARBLE_GOLD;
+        sigmar->marble_counts[MARBLE_GOLD] += 1;
+
+        shuffled_tiles_length = 0;
+
+        if (!sigmar_ShuffleEasy(sigmar, shuffled_tiles, &shuffled_tiles_length)) { continue; }
+        //if (!sigmar_ShuffleHard(sigmar, shuffled_tiles, &shuffled_tiles_length)) { return GENERATION_FAIL; }
+
+        for (int i = 0; i < shuffled_tiles_length; i+=2) {
+            int picked = 0;
+
+            while (!picked) {
+                int c = rand() % 27;
+
+                if (c < 22) {
+                    if (bag[c][0] != MARBLE_INVALID) {
+                        sigmar->marble_counts[bag[c][0]]++;
+                        sigmar->marble_counts[bag[c][1]]++;
+                        sigmar->board[shuffled_tiles[i]].type = bag[c][0];
+                        sigmar->board[shuffled_tiles[i + 1]].type = bag[c][1];
+                        bag[c][0] = MARBLE_INVALID;
                         picked = 1;
-                        break;
+                    }
+                } else {
+                    for (int x = 22; x < 27; x++) {
+                        if (bag[x][0] != MARBLE_INVALID) {
+                            sigmar->marble_counts[bag[x][0]]++;
+                            sigmar->marble_counts[bag[x][1]]++;
+                            sigmar->board[shuffled_tiles[i]].type = bag[x][0];
+                            sigmar->board[shuffled_tiles[i + 1]].type = bag[x][1];
+                            bag[x][0] = MARBLE_INVALID;
+                            picked = 1;
+                            break;
+                        }
                     }
                 }
             }
         }
-    }
 
-    sigmar_UpdateMarbles(sigmar);
-
-    if (!sigmar_IsBoardWinnable(sigmar)) { return GENERATION_FAIL; }
+        sigmar_UpdateMarbles(sigmar);
+    } while (!sigmar_IsBoardWinnable(sigmar));
 
     return GENERATION_SUCCESS;
 }
@@ -302,8 +295,12 @@ int sigmar_recIsBoardWinnable(Sigmar *prev_state, unsigned char *prev_free_tiles
                 sigmar_recIsBoardWinnable(&curr_state, free_tiles, free_tiles_length))
             { return 1; }
         } else {
+            sigmar_Select(&curr_state, free_tiles[i]); // Deselect
+
             for (int j = i + 1; j < free_tiles_length; j++) {
+                sigmar_Select(&curr_state, free_tiles[i]);
                 rc = sigmar_Select(&curr_state, free_tiles[j]);
+                
                 if (rc == SELECT_MATCH) {
                     if (sigmar_IsBoardClear(&curr_state) ||
                         sigmar_recIsBoardWinnable(&curr_state, free_tiles, free_tiles_length))
@@ -313,8 +310,6 @@ int sigmar_recIsBoardWinnable(Sigmar *prev_state, unsigned char *prev_free_tiles
                 sigmar_Select(&curr_state, free_tiles[j]); // Deselect
             }
         }
-
-        sigmar_Select(&curr_state, free_tiles[i]); // Deselect
     }
 
     return 0;
@@ -328,7 +323,7 @@ SelectResult sigmar_Select(Sigmar* sigmar, const unsigned int index) {
         index < 0 ||
         sigmar->board[index].type == MARBLE_INVALID) { return SELECT_ERROR; }
     
-    if (sigmar->prev_selected_indices[sigmar->num_selected - 1] == index) {
+    if (sigmar->num_selected > 0 && sigmar->prev_selected_indices[sigmar->num_selected - 1] == index) {
         sigmar->board[index].state = MARBLE_FREE;
         sigmar->num_selected -= 1;
         return SELECT_DESELECT;
@@ -340,8 +335,14 @@ SelectResult sigmar_Select(Sigmar* sigmar, const unsigned int index) {
     if (rc == MATCH_ERROR) { return SELECT_ERROR; }
 
     switch (rc) {
-        case MATCH_FAIL: // MATCH_FAIL exists purely for readability, frankly.
+        case MATCH_FAIL: // MATCH_FAIL exists purely for readability.
         default:
+            for (int i = 0; i < sigmar->num_selected; i++) { sigmar->board[sigmar->prev_selected_indices[i]].state = MARBLE_FREE; }
+            sigmar->num_selected = 1;
+            sigmar->board[index].state = MARBLE_SELECTED;
+            sigmar->prev_selected_indices[0] = index;
+            sigmar->prev_selected[0] = sigmar->board[index].type;
+
             break;
         case MATCH_CONTINUE: // Adds the selection to the prev_selected array and awaits another selection.
             sigmar->board[index].state = MARBLE_SELECTED;
@@ -432,7 +433,7 @@ void sigmar_IsBlocked(Sigmar *sigmar, unsigned int index, MarbleState *result) {
 
 MatchResult sigmar_Matches(MarbleType *prev_selected, int num_selected, MarbleType selection) {
     if (selection == MARBLE_EMPTY) { return MATCH_ERROR; }
-
+    
     // Only gold can be matched with nothing else, pass MATCH_CONTINUE for every other marble type.
     if (num_selected == 0 && selection != MARBLE_GOLD) { return MATCH_CONTINUE; }
 
@@ -504,10 +505,23 @@ void sigmar_UpdateMarbles(Sigmar *sigmar) {
     }
 }
 
-int sigmar_ImportBoard(Sigmar *sigmar, const char *board_data) {
-    return 1;
+int sigmar_DeserializeBoard(Sigmar *sigmar, const char *board_data) {
+    if (board_data[0] != 1) { return 1; }
+
+    memset(sigmar->marble_counts, 0, NUM_MARBLES);
+    unsigned char pattern = board_data[0];
+
+    for (int i = 1; i < 56; i++) { sigmar->board[patterns[pattern][i - 1]].type = board_data[i]; sigmar->marble_counts[board_data[i]]++; }
+
+    sigmar_UpdateMarbles(sigmar);
+
+    return 0;
 }
 
-int sigmar_ExportBoard(Sigmar *sigmar, char *board_data) {
-    return 1;
+int sigmar_SerializeBoard(Sigmar *sigmar, char *board_data) {
+    board_data[0] = sigmar->pattern;
+
+    for (int i = 1; i < 56; i++) { board_data[i] = sigmar->board[patterns[sigmar->pattern][i - 1]].type; }
+
+    return 0;
 }

@@ -16,6 +16,8 @@
 #define CENTER_TILE ((int)(BOARD_LENGTH * 0.5)) // Index of the center tile of the board.
 #define CENTER_ROW ((CENTER_TILE - (int)(BOARD_SIZE * 0.5))) // Index of the first tile of the center row of the board.
 
+#define NUM_PATTERNS 2
+
 // DO NOT MODIFY THIS ENUM UNLESS YOU KNOW WHAT YOU ARE DOING
 // It is important to several calculations that they are ordered as they are.
 //
@@ -86,8 +88,7 @@ typedef enum : char {
 
 typedef void (* EventCallback)(void);
 
-// Temp pattern for testing
-#define PATTERN {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,\
+/*#define PATTERN {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,\
                  1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,\
                  0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0,\
                  0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0,\
@@ -97,11 +98,7 @@ typedef void (* EventCallback)(void);
                  0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0,\
                  0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0,\
                  0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1,\
-                 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0}
-
-static char pattern[] = PATTERN;
-
-extern const unsigned char bag_counts[NUM_MARBLES];
+                 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0}*/
 
 /*
  * Game state structure.
@@ -111,6 +108,7 @@ typedef struct Sigmar {
 
     unsigned int turn; // Turn counter. (Unused)
 
+    unsigned char pattern; // Pattern used by the current board.
     Marble board[BOARD_LENGTH]; // Array of Marble states for each slot on the board.
     char marble_counts[NUM_MARBLES]; // Counts of each marble type on the board.
 
@@ -123,6 +121,10 @@ typedef struct Sigmar {
 
     EventCallback callback[EVENT_INVALID]; // Callback functions for each valid EventID.
 } Sigmar;
+
+extern const unsigned char bag_counts[NUM_MARBLES];
+
+extern const unsigned char patterns[NUM_PATTERNS][55];
 
 /*
  * Initializes a new Sigmar instance.
@@ -140,16 +142,16 @@ void sigmar_Bind(Sigmar *sigmar, EventID event, EventCallback callback);
 void sigmar_Unbind(Sigmar *sigmar, EventID event);
 
 /*
- * Generates a new board.
+ * Resets the game state.
  */
-void sigmar_ResetBoard(Sigmar *sigmar);
+void sigmar_Reset(Sigmar *sigmar);
 
 /*
  * Attempts to generate a new board.
  * 
  * Returns GENERATION_FAIL if board generation gets stuck, otherwise returns GENERATION_SUCCESS.
  */
-GenerationResult sigmar_GenerateBoard(Sigmar* sigmar);
+GenerationResult sigmar_GenerateBoard(Sigmar *sigmar, unsigned int seed);
 
 /*
  * TODO: Implement this.
@@ -197,13 +199,13 @@ int sigmar_IsBoardClear(Sigmar *sigmar);
 void sigmar_UpdateMarbles(Sigmar *sigmar);
 
 /*
- * Loads the board data of a previously exported board.
+ * Deserializes board data from a previously serialized board.
  */
-int sigmar_ImportBoard(Sigmar *sigmar, const char *board_data);
+int sigmar_DeserializeBoard(Sigmar *sigmar, const char *board_data);
 
 /*
- * Exports the current board to a character array that can be later read by sigmar_ImportBoard()
+ * Serializes the current board to a character array that can be later read by sigmar_ImportBoard()
  */
-int sigmar_ExportBoard(Sigmar *sigmar, char *board_data);
+int sigmar_SerializeBoard(Sigmar *sigmar, char *board_data);
 
 #endif //OPENSIGMAR_SIGMAR_H

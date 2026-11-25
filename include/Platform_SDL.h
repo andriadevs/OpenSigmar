@@ -24,8 +24,13 @@
 #define TEXTURE_DIR ASSETS_DIR "texture/"
 #define SOUND_DIR ASSETS_DIR "sound/"
 
-#define NUM_TEXTURES (TEXTURE_INVALID - 1)
-#define NUM_SOUNDS (SOUND_INVALID - 1)
+#define SAVE_FILE_HEADER "#!"
+#define SAVE_FILE "./save"
+#define DATA_FILE_HEADER "#!"
+#define DATA_FILE "./data"
+
+#define NUM_TEXTURES (TEXTURE_INVALID)
+#define NUM_SOUNDS (SOUND_INVALID)
 
 typedef struct Sigmar Sigmar; // Forward declaration.
 typedef struct SigmarData SigmarData; // Forward declaration.
@@ -192,6 +197,7 @@ typedef struct {
     Button *buttons;
     unsigned short buttons_length;
 
+    unsigned int last_board;
     int is_board_clear;
 
     clock_t last_tick;
