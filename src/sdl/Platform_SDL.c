@@ -625,12 +625,10 @@ int sigmar_LoadBoard(Sigmar *sigmar) {
     SDL_ReadIO(file, &count, sizeof(unsigned int));
     
     if (app.last_board == UINT_MAX) { app.last_board = rand() % count; }
-    else if (app.last_board >= count) { app.last_board = 0; }
+    else if (app.last_board > count - 1) { app.last_board = 0; }
 
     int offs = app.last_board * 56;
     app.last_board++;
-
-    //printf("Offs: %i\n", offs);
 
     SDL_SeekIO(file, offs, SEEK_CUR);
     SDL_ReadIO(file, board_data, 56);
