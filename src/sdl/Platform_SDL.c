@@ -754,6 +754,8 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
         app.debug_mode = 1;
     }
 
+    srand(time(NULL));
+
     sigmar_Reset(app.sigmar);
     sigmar_LoadBoard(app.sigmar);
 
