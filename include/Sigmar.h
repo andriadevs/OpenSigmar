@@ -2,21 +2,21 @@
 #define OPENSIGMAR_SIGMAR_H
 
 /**
- * TODO: Replace sound effects and music with sound effects and music that aren't directly ripped from the game.
+ * TODO: Replace sound effects and music with custom sound effects and music.
  *
  *
  */
 
 #define ADJACENCY_OFFSETS(BOARD_SIZE) {-(BOARD_SIZE), 1, (BOARD_SIZE) + 1, (BOARD_SIZE), -1, -(BOARD_SIZE) - 1}
 
-#define MAX_SELECTED 4
+#define MAX_SELECTED (4)
 
-#define BOARD_SIZE 11
+#define BOARD_SIZE (11)
 #define BOARD_LENGTH (BOARD_SIZE * BOARD_SIZE)
 #define CENTER_TILE ((int)(BOARD_LENGTH * 0.5)) // Index of the center tile of the board.
 #define CENTER_ROW ((CENTER_TILE - (int)(BOARD_SIZE * 0.5))) // Index of the first tile of the center row of the board.
 
-#define NUM_PATTERNS 10
+#define NUM_PATTERNS (10)
 #define PATTERN_LENGTH (55) // Length of each of the preset patterns, AKA, the total number of marbles on a newly-generated board.
 
 // DO NOT MODIFY THIS ENUM UNLESS YOU KNOW WHAT YOU ARE DOING
@@ -89,25 +89,13 @@ typedef enum : char {
 
 typedef void (* EventCallback)(void);
 
-/*#define PATTERN {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,\
-                 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,\
-                 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0,\
-                 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0,\
-                 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0,\
-                 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,\
-                 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0,\
-                 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0,\
-                 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0,\
-                 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1,\
-                 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0}*/
-
 /*
  * Game state structure.
  */
 typedef struct Sigmar {
     int adjacency_offsets[6]; // Stores the offsets used to calculate the six adjacent tile indices from any given index.
 
-    unsigned int turn; // Turn counter. (Unused)
+    unsigned int turn; // Turn counter. (Unused) (Probably forever lol)
 
     unsigned char pattern; // Pattern used by the current board.
     Marble board[BOARD_LENGTH]; // Array of Marble states for each slot on the board.
@@ -147,16 +135,32 @@ void sigmar_Unbind(Sigmar *sigmar, EventID event);
 void sigmar_Reset(Sigmar *sigmar);
 
 /*
- * Cleans the board.
+ * Cleans the board to a blank slate.
  */
 void sigmar_CleanBoard(Sigmar *sigmar);
 
 /*
+ * Do not call outside of sigmar_GenerateBoard().
+ *
+ * Generates a shuffled array of tile indices using an algorithm that is more likely to generate easier puzzles.
+ */
+int sigmar_ShuffleEasy(Sigmar *sigmar, unsigned char *shuffled_tiles, unsigned char *shuffled_tiles_length);
+
+/*
+ * Do not call outside of sigmar_GenerateBoard().
+ *
+ * Generates a shuffled array of tile indices using an algorithm that is more likely to generate harder puzzles.
+ */
+int sigmar_ShuffleHard(Sigmar *sigmar, unsigned char *shuffled_tiles, unsigned char *shuffled_tiles_length);
+
+/*
  * Attempts to generate a new board.
+ * 
+ * If difficulty is set to 0, uses "easy" board generation. If set to 1, uses "hard" board generation.
  * 
  * Returns GENERATION_FAIL if board generation gets stuck, otherwise returns GENERATION_SUCCESS.
  */
-GenerationResult sigmar_GenerateBoard(Sigmar *sigmar, unsigned int seed);
+GenerationResult sigmar_GenerateBoard(Sigmar *sigmar, unsigned int seed, unsigned char difficulty);
 
 /*
  * Checks if a board is winnable.

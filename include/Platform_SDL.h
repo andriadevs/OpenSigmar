@@ -36,15 +36,16 @@
 #define CONFIG_SOUND_VOLUME "sound volume"
 #define CONFIG_SOUND_VOLUME_DEFAULT "0.8"
 #define CONFIG_RESET_KEY "reset key"
-#define CONFIG_RESET_KEY_DEFAULT "32"
+#define CONFIG_RESET_KEY_DEFAULT "0x00000020u"
 #define CONFIG_DEBUG_KEY "debug mode toggle key"
-#define CONFIG_DEBUG_KEY_DEFAULT "100"
+#define CONFIG_DEBUG_KEY_DEFAULT "0x00000064u"
+
+#define DEBUG_MODE_DIFFICULTY 0 // Difficulty used when generating boards while debug mode is active.
 
 #define NUM_TEXTURES (TEXTURE_INVALID)
 #define NUM_SOUNDS (SOUND_INVALID)
 
 typedef struct Sigmar Sigmar; // Forward declaration.
-typedef struct SigmarData SigmarData; // Forward declaration.
 
 /*
  * Stores an RGBA32 color.

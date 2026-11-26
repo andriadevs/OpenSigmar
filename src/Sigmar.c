@@ -200,7 +200,7 @@ int sigmar_ShuffleHard(Sigmar *sigmar, unsigned char *shuffled_tiles, unsigned c
     return 1;
 }
 
-GenerationResult sigmar_GenerateBoard(Sigmar *sigmar, unsigned int seed) {
+GenerationResult sigmar_GenerateBoard(Sigmar *sigmar, unsigned int seed, unsigned char difficulty) {
     if (sigmar == NULL) { return GENERATION_ERROR; }
 
     srand(seed);
@@ -250,8 +250,8 @@ GenerationResult sigmar_GenerateBoard(Sigmar *sigmar, unsigned int seed) {
 
         shuffled_tiles_length = 0;
 
-        if (!sigmar_ShuffleEasy(sigmar, shuffled_tiles, &shuffled_tiles_length)) { continue; }
-        //if (!sigmar_ShuffleHard(sigmar, shuffled_tiles, &shuffled_tiles_length)) { return GENERATION_FAIL; }
+        if (difficulty == 0) { if (!sigmar_ShuffleEasy(sigmar, shuffled_tiles, &shuffled_tiles_length)) { continue; } }
+        else { if (!sigmar_ShuffleHard(sigmar, shuffled_tiles, &shuffled_tiles_length)) { return GENERATION_FAIL; } }
 
         for (int i = 0; i < shuffled_tiles_length; i+=2) {
             int picked = 0;

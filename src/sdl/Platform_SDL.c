@@ -121,8 +121,8 @@ SigmarResultSDL sigmar_LoadConfigs() {
         // Create new config.ini file.
         app.music_volume = 0.8f;
         app.sound_volume = 0.8f;
-        app.reset_key = atoi(CONFIG_RESET_KEY_DEFAULT);
-        app.debug_key = atoi(CONFIG_DEBUG_KEY_DEFAULT);
+        sscanf(CONFIG_RESET_KEY_DEFAULT, "0x%xu", &app.reset_key);
+        sscanf(CONFIG_DEBUG_KEY_DEFAULT, "0x%xu", &app.debug_key);
 
         const char default_ini[] = 
             CONFIG_MUSIC_VOLUME "=" CONFIG_MUSIC_VOLUME_DEFAULT "\n"
@@ -141,8 +141,8 @@ SigmarResultSDL sigmar_LoadConfigs() {
         const char format_string[] = 
             CONFIG_MUSIC_VOLUME "=%f\n"
             CONFIG_SOUND_VOLUME "=%f\n"
-            CONFIG_RESET_KEY "=%u\n"
-            CONFIG_DEBUG_KEY "=%u";
+            CONFIG_RESET_KEY "=0x%xu\n"
+            CONFIG_DEBUG_KEY "=0x%xu";
 
         rc = SDL_sscanf(file, format_string, &m_vol, &s_vol, &r_key, &d_key);
 
@@ -647,7 +647,7 @@ int sigmar_SaveData(SigmarData *data) {
     return 0;
 }
 
-int sigmar_PregenerateBoards(Sigmar *sigmar, unsigned int count) {
+int sigmar_PregenerateBoards(Sigmar *sigmar, unsigned int count, unsigned char difficulty) {
     char board_data[56];
 
     SDL_IOStream *file = SDL_IOFromFile(DATA_FILE, "wb");
@@ -661,7 +661,7 @@ int sigmar_PregenerateBoards(Sigmar *sigmar, unsigned int count) {
     unsigned int seed = time(NULL);
 
     for (int i = 0; i < count; i++) {
-        sigmar_GenerateBoard(sigmar, seed++);
+        sigmar_GenerateBoard(sigmar, seed++, difficulty);
         sigmar_SerializeBoard(sigmar, board_data);
         SDL_WriteIO(file, board_data, 56);
     }
@@ -735,14 +735,17 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
     if (rc != 0) { return SDL_APP_FAILURE; }
 
     // OPTIONS:
-    //  -g [number] : Pregenerates 'number' boards & writes them to the data file.
+    //  -g [difficulty] [number]: Using 0 for "easy" boards or 1 for "hard" boards, pregenerates 'number' boards & writes them to the data file.
     //  -d : Starts OpenSigmar in debug mode.
-    if (argc == 3 && !memcmp("-g", argv[1], 3)) {
+    if (argc == 4 && !memcmp("-g", argv[1], 3)) {
+        unsigned char difficulty = atoi(argv[2]);
+        if (difficulty < 0 || difficulty >= 2) { SDL_Log("Invalid difficulty value!"); return SDL_APP_FAILURE; }
+        
         printf("Generating new boards! ... ");
         fflush(NULL);
-        int count = atoi(argv[2]);
+        int count = atoi(argv[3]);
 
-        sigmar_PregenerateBoards(app.sigmar, count);
+        sigmar_PregenerateBoards(app.sigmar, count, difficulty);
 
         printf("Done!\n");
         return SDL_APP_SUCCESS;
@@ -1020,7 +1023,7 @@ void sigmar_OnButtonRelease(ButtonType type, Button *button) {
 }
 
 void sigmar_OnBoardReset() {
-    if (app.debug_mode) { sigmar_GenerateBoard(app.sigmar, time(NULL)); }
+    if (app.debug_mode) { sigmar_GenerateBoard(app.sigmar, time(NULL), DEBUG_MODE_DIFFICULTY); }
     else { sigmar_LoadBoard(app.sigmar); }
 
     app.board_clear = 0;

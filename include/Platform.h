@@ -27,8 +27,10 @@ int sigmar_SaveData(SigmarData *data);
 
 /*
  * Pregenerates 'count' boards and stores them according to the platform implementation.
+ *
+ * If difficulty is set to 0, uses "easy" board generation. If set to 1, uses "hard" board generation.
  */
-int sigmar_PregenerateBoards(Sigmar *sigmar, unsigned int count);
+int sigmar_PregenerateBoards(Sigmar *sigmar, unsigned int count, unsigned char difficulty);
 
 /*
  * Loads a random board previously generated using sigmar_PregenerateBoards().
