@@ -12,6 +12,7 @@
 #include "SDL3/SDL_render.h"
 #include <SDL3/SDL.h>
 
+#include <SDL3/SDL_keycode.h>
 #include <time.h>
 
 #define NUM_AUDIO_STREAMS 3 // Number of audio streams to use. First stream is always dedicated solely to background music.
@@ -29,12 +30,18 @@
 #define DATA_FILE_HEADER "#!"
 #define DATA_FILE ASSETS_DIR "solitaire.dat"
 
+#define CONFIG_FILE "./config.ini"
+#define CONFIG_MUSIC_VOLUME "music volume"
+#define CONFIG_MUSIC_VOLUME_DEFAULT "0.8"
+#define CONFIG_SOUND_VOLUME "sound volume"
+#define CONFIG_SOUND_VOLUME_DEFAULT "0.8"
+#define CONFIG_RESET_KEY "reset key"
+#define CONFIG_RESET_KEY_DEFAULT "32"
+#define CONFIG_DEBUG_KEY "debug mode toggle key"
+#define CONFIG_DEBUG_KEY_DEFAULT "100"
+
 #define NUM_TEXTURES (TEXTURE_INVALID)
 #define NUM_SOUNDS (SOUND_INVALID)
-
-// Keybind macros... until I add a config.ini, TODO: which I will, eventually.
-#define KEY_QUICK_RESET SDLK_SPACE
-#define KEY_DEBUG_MODE SDLK_D
 
 typedef struct Sigmar Sigmar; // Forward declaration.
 typedef struct SigmarData SigmarData; // Forward declaration.
@@ -166,6 +173,10 @@ typedef struct {
     TextureID texture;
 } Button;
 
+typedef struct SigmarData {
+    unsigned long wins;
+} SigmarData;
+
 /*
  * Stores all of the persistent data used by the game & SDL.
  */
@@ -179,13 +190,20 @@ typedef struct {
     SDL_Texture *texture[TEXTURE_INVALID + 1];
     AnimationID current_animation;
     double animation_position;
+
+    double music_volume;
+    double sound_volume;
+
+    SDL_Keycode reset_key;
+    SDL_Keycode debug_key;
     
-    int render_width;
-    int render_height;
-    int hud_height;
+    unsigned int render_width;
+    unsigned int render_height;
+    unsigned int hud_height;
+
     SDL_FPoint mouse_position;
-    int mouse_tile; // Index of the tile the mouse hovered over last.
-    int mouse_button; // Index of the button the mouse hovered over last.
+    unsigned char mouse_tile; // Index of the tile the mouse hovered over last.
+    unsigned char mouse_button; // Index of the button the mouse hovered over last.
     
     float tile_width;
     float tile_height;
@@ -202,7 +220,7 @@ typedef struct {
     unsigned short buttons_length;
 
     unsigned int last_board;
-    char is_board_clear;
+    char board_clear;
     char debug_mode;
 
     clock_t last_tick;
@@ -219,6 +237,11 @@ extern const char sound_filename[SOUND_INVALID][36];
 extern const int type_symbol[]; // Maps a valid MarbleType to its respective symbol texture.
 
 extern const ColorRGBA type_color[]; // Maps a valid MarbleType to its respective ColorRGBA.
+
+/*
+ * Loads settings from the config file into SigmarData
+ */
+SigmarResultSDL sigmar_LoadConfigs();
 
 /*
  * Loads textures from assets directory and sets the tile_width and tile_height from the dimensions of the tile texture.

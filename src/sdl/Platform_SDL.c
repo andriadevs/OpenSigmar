@@ -5,6 +5,7 @@
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_iostream.h"
+#include "SDL3/SDL_keycode.h"
 #include "SDL3/SDL_log.h"
 #include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_rect.h"
@@ -15,6 +16,7 @@
 #include "Sigmar.h"
 
 #include <limits.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -110,6 +112,53 @@ const ColorRGBA type_color[] = {
 };
 
 static AppState app;
+
+SigmarResultSDL sigmar_LoadConfigs() {
+    int rc;
+    size_t filesize;
+    char *file = (char *) SDL_LoadFile(CONFIG_FILE, &filesize);
+    if (!file) {
+        // Create new config.ini file.
+        app.music_volume = 0.8f;
+        app.sound_volume = 0.8f;
+        app.reset_key = atoi(CONFIG_RESET_KEY_DEFAULT);
+        app.debug_key = atoi(CONFIG_DEBUG_KEY_DEFAULT);
+
+        const char default_ini[] = 
+            CONFIG_MUSIC_VOLUME "=" CONFIG_MUSIC_VOLUME_DEFAULT "\n"
+            CONFIG_SOUND_VOLUME "=" CONFIG_SOUND_VOLUME_DEFAULT "\n"
+            CONFIG_RESET_KEY "=" CONFIG_RESET_KEY_DEFAULT "\n"
+            CONFIG_DEBUG_KEY "=" CONFIG_DEBUG_KEY_DEFAULT;
+
+        rc = SDL_SaveFile(CONFIG_FILE, default_ini, sizeof(default_ini) - 1);
+        if (!rc) { SDL_Log("Couldn't generate default config.ini: %s", SDL_GetError()); return SIGMAR_ERROR; }
+
+    } else {
+        // Try to load configs from file.
+        float m_vol, s_vol;
+        SDL_Keycode r_key, d_key;
+
+        const char format_string[] = 
+            CONFIG_MUSIC_VOLUME "=%f\n"
+            CONFIG_SOUND_VOLUME "=%f\n"
+            CONFIG_RESET_KEY "=%u\n"
+            CONFIG_DEBUG_KEY "=%u";
+
+        rc = SDL_sscanf(file, format_string, &m_vol, &s_vol, &r_key, &d_key);
+
+        SDL_free(file);
+
+        if (rc != 4) { SDL_Log("Couldn't load config.ini"); }
+        else {
+            app.music_volume = m_vol;
+            app.sound_volume = s_vol;
+            app.reset_key = r_key;
+            app.debug_key = d_key;
+        }
+    }
+
+    return SIGMAR_OK;
+}
 
 SigmarResultSDL sigmar_LoadTextures() {
     char num_fails = 0;
@@ -261,7 +310,6 @@ SigmarResultSDL sigmar_SetupBoard() {
     next++;
 
     // Setup buttons
-
     app.buttons_length = NUM_MARBLES + 1;
     app.buttons = (Button *) malloc(sizeof(Button) * app.buttons_length);
     next = 0;
@@ -444,7 +492,7 @@ SigmarResultSDL sigmar_RenderHud() {
     }
 
     // Board clear message
-    if (app.is_board_clear) {
+    if (app.board_clear) {
         rect.x=app.render_width / 2.0f - 200;
         rect.y=app.render_height / 2.0f - 50;
         rect.w=400;
@@ -460,10 +508,16 @@ SigmarResultSDL sigmar_RenderHud() {
 
     // Debug mode overlay
     if (app.debug_mode) {
-        SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
         for (int i = 0; i < BOARD_LENGTH; i++) {
             if (app.sigmar->board[app.tiles[i].index].type != MARBLE_INVALID) {
-                SDL_RenderDebugTextFormat(app.renderer, app.tiles[i].x + (app.tile_width / 2) - 8, app.tiles[i].y + (app.tile_height / 2) - 4, "%i", i);
+                rect.x=app.tiles[i].x + (app.tile_width / 2) - 13;
+                rect.y=app.tiles[i].y + (app.tile_height / 2) - 5;
+                rect.w=26;
+                rect.h=10;
+                SDL_SetRenderDrawColor(app.renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+                SDL_RenderFillRect(app.renderer, &rect);
+                SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+                SDL_RenderDebugTextFormat(app.renderer, rect.x + 1, rect.y + 1, "%i", i);
             }
         }
 
@@ -562,9 +616,6 @@ int sigmar_DataInit(SigmarData **data) {
     *data = malloc(sizeof(SigmarData));
 
     (*data)->wins = 0;
-    
-    (*data)->music_volume = 0.75f;
-    (*data)->sound_volume = 0.75f;
 
     return 0;
 }
@@ -652,6 +703,10 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     app.window = NULL;
     app.renderer = NULL;
+    app.music_volume = 0.0;
+    app.sound_volume = 0.0;
+    app.reset_key = SDLK_SPACE;
+    app.debug_key = SDLK_D;
     app.render_width = 1280;
     app.render_height = 720;
     app.mouse_position.x = app.render_width / 2.0f;
@@ -666,15 +721,17 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
     app.current_animation = ANIMATION_INVALID;
     app.animation_position = 0;
     app.last_board = UINT_MAX;
+    app.board_clear = 0;
     app.debug_mode = 0;
 
-    rc = sigmar_DataInit(&(app.data));
+    rc = sigmar_LoadConfigs();
+    if (rc != SIGMAR_OK) { SDL_Log("No config.ini could be loaded/created, using default configurations."); }
 
+    rc = sigmar_DataInit(&(app.data));
     if (rc != 0) { return SDL_APP_FAILURE; }
     else { sigmar_LoadData(app.data); }
 
     rc = sigmar_Init(&(app.sigmar));
-
     if (rc != 0) { return SDL_APP_FAILURE; }
 
     // OPTIONS:
@@ -728,12 +785,12 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
                 SDL_Log("Couldn't create audio stream: %s", SDL_GetError());
                 return SDL_APP_FAILURE;
             } else {
-                SDL_SetAudioStreamGain(app.audio_stream[i], BASE_GAIN * app.data->sound_volume);
+                SDL_SetAudioStreamGain(app.audio_stream[i], BASE_GAIN * app.sound_volume);
                 SDL_ResumeAudioStreamDevice(app.audio_stream[i]);
             }
         }
 
-        SDL_SetAudioStreamGain(app.audio_stream[0], BASE_GAIN * app.data->music_volume);
+        SDL_SetAudioStreamGain(app.audio_stream[0], BASE_GAIN * app.music_volume);
 
     } else if (rc == SIGMAR_NO_SOUNDS) { SDL_Log("No sound files found, audio streams will not be initialized."); }
 
@@ -763,7 +820,7 @@ SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
             SDL_ConvertEventToRenderCoordinates(app.renderer, event);
             app.mouse_position.x = event->motion.x;
             app.mouse_position.y = event->motion.y;
-            app.mouse_tile = -1;
+            app.mouse_tile = BOARD_LENGTH;
 
             // Checks whether the mouse is hovering over a valid tile.
             bounds.w = app.tile_width;
@@ -807,7 +864,7 @@ SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
 
             // Handles mouse click event, attempts a select/match if applicable.
             if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
-                if (app.mouse_tile != -1 && app.sigmar->board[app.mouse_tile].state != MARBLE_LOCKED) {
+                if (app.mouse_tile != BOARD_LENGTH && app.sigmar->board[app.mouse_tile].state != MARBLE_LOCKED) {
                     SelectResult rc = sigmar_Select(app.sigmar, app.tiles[app.mouse_tile].index);
 
                     switch (rc) {
@@ -842,9 +899,8 @@ SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
             return SDL_APP_CONTINUE;
         
         case SDL_EVENT_KEY_DOWN:
-            // Temporary key to reset the board, will be replaced with a proper configurable reset key later on.
-            if (event->key.key == KEY_QUICK_RESET) { sigmar_Reset(app.sigmar); }
-            else if (event->key.key == KEY_DEBUG_MODE) { app.debug_mode = !app.debug_mode; }
+            if (event->key.key == app.reset_key) { sigmar_Reset(app.sigmar); }
+            else if (event->key.key == app.debug_key) { app.debug_mode = !app.debug_mode; }
 
             return SDL_APP_CONTINUE;
 
@@ -889,7 +945,7 @@ SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
     }
 
     // Render hover
-    if (app.mouse_tile != -1 && app.sigmar->board[app.mouse_tile].state == MARBLE_FREE && app.sigmar->board[app.mouse_tile].type != MARBLE_EMPTY) {
+    if (app.mouse_tile != BOARD_LENGTH && app.sigmar->board[app.mouse_tile].state == MARBLE_FREE && app.sigmar->board[app.mouse_tile].type != MARBLE_EMPTY) {
         SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
         rect.x = (float) app.tiles[app.mouse_tile].x;
         rect.y = (float) app.tiles[app.mouse_tile].y;
@@ -967,14 +1023,14 @@ void sigmar_OnBoardReset() {
     if (app.debug_mode) { sigmar_GenerateBoard(app.sigmar, time(NULL)); }
     else { sigmar_LoadBoard(app.sigmar); }
 
-    app.is_board_clear = 0;
+    app.board_clear = 0;
     app.last_tick = clock();
     sigmar_PlaySound(SOUND_START, 2, 1);
     sigmar_PlayAnimation(ANIMATION_BOARD_GENERATE);
 }
 
 void sigmar_OnBoardClear() {
-    app.is_board_clear = 1;
+    app.board_clear = 1;
     app.data->wins++;
     sigmar_PlaySound(SOUND_END, 2, 1);
     sigmar_PlayAnimation(ANIMATION_BOARD_CLEAR);

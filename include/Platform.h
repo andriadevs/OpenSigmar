@@ -3,17 +3,26 @@
 
 typedef struct Sigmar Sigmar; // Forward declaration.
 
-typedef struct SigmarData {
-    unsigned long wins;
+/*
+ * Struct containing any data that should be retained between program executions.
+ * 
+ * How the data is saved, loaded, and initialized is platform-dependent.
+ */
+typedef struct SigmarData SigmarData;
 
-    double music_volume;
-    double sound_volume;
-} SigmarData;
-
+/*
+ * Initializes SigmarData to platform defaults.
+ */
 int sigmar_DataInit(SigmarData **data);
 
+/*
+ * Loads previously saved data according to platform implementation.
+ */
 int sigmar_LoadData(SigmarData *data);
 
+/*
+ * Saves SigmarData to file according to platform implementation.
+ */
 int sigmar_SaveData(SigmarData *data);
 
 /*
