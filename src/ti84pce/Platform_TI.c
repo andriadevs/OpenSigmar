@@ -52,7 +52,7 @@ int sigmar_Main() {
             boot_snprintf(buf, 26, "Presses: %i", number);
             os_PutStrFull(buf);
             counter++;*/
-            sigmar_ResetBoard(sigmar);
+            sigmar_Reset(sigmar);
             MarbleType type;
             
             for (int y = 0; y < 11; y++) {

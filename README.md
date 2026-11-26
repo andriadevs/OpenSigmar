@@ -20,7 +20,7 @@ TI-84 Plus CE version is currently not yet implemented!
 ### For Linux:
 Before running, use `./OpenSigmar -g [difficulty] [number]` to pregenerate 'number' of boards, using 0 for 'difficulty' to generate easier boards or 1 for harder boards.
 
-Run `./OpenSigmar` from the bin directory, or wherever you've moved the executable & assets directory to, to start the game.
+Run `./OpenSigmar` from the bin subdirectory, or wherever you've moved the executable & assets directory to, to start the game.
 
 To start the game in debug mode, use `./OpenSigmar -d`.
 
@@ -29,7 +29,7 @@ Keybind configurations in `config.ini` use the keycodes used by SDL3, a full lis
 ### For Windows:
 Before running, use `./OpenSigmar.exe -g [difficulty] [number]` to pregenerate 'number' of boards, using 0 for 'difficulty' to generate easier boards or 1 for harder boards.
 
-Run `./OpenSigmar.exe` from the bin directory, or wherever you've moved the executable & assets directory to, to start the game.
+Run `./OpenSigmar.exe` from the bin subdirectory, or wherever you've moved the executable & assets directory to, to start the game.
 
 To start the game in debug mode, use `./OpenSigmar.exe -d`.
 

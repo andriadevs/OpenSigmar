@@ -13,6 +13,7 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/linux-x86_64",
       "cacheVariables": {
+        "RUNTIME_OUTPUT_SUBDIRECTORY": { "value": "linux-x86_64"},
         "LIBSIGMAR": { "type": "BOOL", "value": "ON" },
         "SDL3": { "type": "BOOL", "value": "ON" },
         "LINUX": { "type": "BOOL", "value": "ON" }
@@ -26,6 +27,7 @@
       "binaryDir": "${sourceDir}/build/windows-x86_64",
       "toolchainFile": "${sourceDir}/src/MINGW.cmake",
       "cacheVariables": {
+        "RUNTIME_OUTPUT_SUBDIRECTORY": { "value": "windows-x86_64"},
         "LIBSIGMAR": { "type": "BOOL", "value": "ON" },
         "SDL3": { "type": "BOOL", "value": "ON" },
         "WINDOWS": { "type": "BOOL", "value": "ON" }
@@ -38,6 +40,7 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/ti84pce",
       "cacheVariables": {
+        "RUNTIME_OUTPUT_SUBDIRECTORY": { "value": "ti84pce"},
         "TI84PCE": { "type": "BOOL", "value": "ON" }
       }
     }

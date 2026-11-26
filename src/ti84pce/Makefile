@@ -1,7 +1,7 @@
 # Makefile for building for TI-CE, use CMake for all other platforms.
 
 NAME = Sigmar
-ICON = ./assets/texture/icon_ce.png
+ICON = ./assets/ti84pce/icon_ce.png
 DESCRIPTION = "OpenSigmar"
 COMPRESSED = NO
 

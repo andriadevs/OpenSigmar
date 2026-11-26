@@ -3,7 +3,12 @@ project(OpenSigmar)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+if (RUNTIME_OUTPUT_SUBDIRECTORY)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${RUNTIME_OUTPUT_SUBDIRECTORY}")
+else()
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+endif()
+
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
 
 # libSigmar
@@ -46,12 +51,12 @@ if (${SDL3})
     add_custom_command(
         TARGET OpenSigmarSDL POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:OpenSigmarSDL>/assets)
+        ${CMAKE_SOURCE_DIR}/assets/sdl $<TARGET_FILE_DIR:OpenSigmarSDL>/assets)
 endif() # SDL3
 
 # TI-84 Plus CE
 if (${TI84PCE})
     add_custom_target(SigmarTI84PCE ALL # Build OpenSigmar TI-84 Plus CE implementation
-        make -f ${CMAKE_SOURCE_DIR}/src/ti84pce/Makefile
+        make -f ${CMAKE_SOURCE_DIR}/src/ti84pce/Makefile BINDIR=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endif() # TI84PCE

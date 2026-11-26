@@ -1,3 +1,4 @@
+#ifdef SIGMAR_SDL
 #ifndef OPENSIGMAR_PLATFORM_SDL_H
 #define OPENSIGMAR_PLATFORM_SDL_H
 
@@ -351,3 +352,4 @@ void sigmar_OnBoardReset();
 void sigmar_OnBoardClear();
 
 #endif //OPENSIGMAR_PLATFORM_SDL_H
+#endif //SIGMAR_SDL
