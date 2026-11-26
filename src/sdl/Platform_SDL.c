@@ -5,7 +5,6 @@
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_iostream.h"
-#include "SDL3/SDL_keycode.h"
 #include "SDL3/SDL_log.h"
 #include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_rect.h"
@@ -113,7 +112,6 @@ const ColorRGBA type_color[] = {
 static AppState app;
 
 SigmarResultSDL sigmar_LoadTextures() {
-
     char num_fails = 0;
     char dir[128];
     SDL_Surface *surface = SDL_CreateSurface(64, 64, SDL_PIXELFORMAT_RGBA32);
@@ -145,11 +143,9 @@ SigmarResultSDL sigmar_LoadTextures() {
 
     if (num_fails == 0) { return SIGMAR_OK; }
     else { return num_fails == NUM_TEXTURES ? SIGMAR_NO_TEXTURES : SIGMAR_MISSING_TEXTURES; }
-
 }
 
 SigmarResultSDL sigmar_CheckSounds() {
-    
     char num_fails = 0;
     char dir[128];
     SDL_AudioSpec spec;
@@ -170,7 +166,6 @@ SigmarResultSDL sigmar_CheckSounds() {
 
     if (num_fails == 0) { return SIGMAR_OK; }
     else { return num_fails == NUM_SOUNDS ? SIGMAR_NO_SOUNDS : SIGMAR_MISSING_SOUNDS; }
-
 }
 
 SigmarResultSDL sigmar_SetupBoard() {
@@ -328,8 +323,7 @@ SigmarResultSDL sigmar_RenderTile(Tile *tile) {
         if (state == MARBLE_SELECTED) {
             rect.y -= 2;
             SDL_RenderTexture(app.renderer, app.texture[TEXTURE_HOVER], NULL, &rect);
-        }
-        else if (state == MARBLE_LOCKED) { color.a = 150; }
+        } else if (state == MARBLE_LOCKED) { color.a = 150; }
 
         SDL_SetTextureColorMod(app.texture[TEXTURE_MARBLE], color.r, color.g, color.b);
         SDL_SetTextureAlphaMod(app.texture[TEXTURE_MARBLE], color.a * tile->marble_alpha_mult);
@@ -462,6 +456,19 @@ SigmarResultSDL sigmar_RenderHud() {
         SDL_RenderRect(app.renderer, &rect);
 
         SDL_RenderDebugText(app.renderer, rect.x + 25, rect.y + 25, "You cleared the board! Press space to reset.");
+    }
+
+    // Debug mode overlay
+    if (app.debug_mode) {
+        SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+        for (int i = 0; i < BOARD_LENGTH; i++) {
+            if (app.sigmar->board[app.tiles[i].index].type != MARBLE_INVALID) {
+                SDL_RenderDebugTextFormat(app.renderer, app.tiles[i].x + (app.tile_width / 2) - 8, app.tiles[i].y + (app.tile_height / 2) - 4, "%i", i);
+            }
+        }
+
+        SDL_SetRenderDrawColor(app.renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+        SDL_RenderDebugTextFormat(app.renderer, 4, 4, "PATTERN: %i", app.sigmar->pattern);
     }
 
     return SIGMAR_OK;
@@ -659,6 +666,7 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
     app.current_animation = ANIMATION_INVALID;
     app.animation_position = 0;
     app.last_board = UINT_MAX;
+    app.debug_mode = 0;
 
     rc = sigmar_DataInit(&(app.data));
 
@@ -669,15 +677,21 @@ SDL_AppResult sigmar_SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     if (rc != 0) { return SDL_APP_FAILURE; }
 
-    // If "-g [number]" is used when executing this program, pregenerate 'number' boards & put them in the data file.
+    // OPTIONS:
+    //  -g [number] : Pregenerates 'number' boards & writes them to the data file.
+    //  -d : Starts OpenSigmar in debug mode.
     if (argc == 3 && !memcmp("-g", argv[1], 3)) {
-        printf("Generating new boards!\n");
+        printf("Generating new boards! ... ");
         fflush(NULL);
         int count = atoi(argv[2]);
 
         sigmar_PregenerateBoards(app.sigmar, count);
-        
+
+        printf("Done!\n");
         return SDL_APP_SUCCESS;
+    } else if (argc == 2 && !memcmp("-d", argv[1], 3)) {
+        printf("Starting OpenSigmar in debug mode...");
+        app.debug_mode = 1;
     }
 
     sigmar_Reset(app.sigmar);
@@ -829,9 +843,8 @@ SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
         
         case SDL_EVENT_KEY_DOWN:
             // Temporary key to reset the board, will be replaced with a proper configurable reset key later on.
-            if (event->key.key == SDLK_SPACE) {
-                sigmar_Reset(app.sigmar);
-            }
+            if (event->key.key == KEY_QUICK_RESET) { sigmar_Reset(app.sigmar); }
+            else if (event->key.key == KEY_DEBUG_MODE) { app.debug_mode = !app.debug_mode; }
 
             return SDL_APP_CONTINUE;
 
@@ -842,7 +855,6 @@ SDL_AppResult sigmar_SDL_AppEvent(void *appstate, SDL_Event *event) {
             return SDL_APP_CONTINUE;
     }
 }
-
 
 SDL_AppResult sigmar_SDL_AppIterate(void *appstate) {
     SDL_FRect rect;
@@ -952,7 +964,9 @@ void sigmar_OnButtonRelease(ButtonType type, Button *button) {
 }
 
 void sigmar_OnBoardReset() {
-    sigmar_LoadBoard(app.sigmar);
+    if (app.debug_mode) { sigmar_GenerateBoard(app.sigmar, time(NULL)); }
+    else { sigmar_LoadBoard(app.sigmar); }
+
     app.is_board_clear = 0;
     app.last_tick = clock();
     sigmar_PlaySound(SOUND_START, 2, 1);

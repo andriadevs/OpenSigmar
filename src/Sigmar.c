@@ -4,33 +4,37 @@
 #include <string.h>
 #include <stdio.h>
 
-const unsigned char bag_counts[NUM_MARBLES] = {
-    [MARBLE_SALT] = 4,
-    [MARBLE_FIRE] = 8,
-    [MARBLE_WATER] = 8,
-    [MARBLE_EARTH] = 8,
-    [MARBLE_AIR] = 8,
-    [MARBLE_VITAE] = 4,
-    [MARBLE_MORS] = 4,
-    [MARBLE_QUICKSILVER] = 5,
-    [MARBLE_LEAD] = 1,
-    [MARBLE_TIN] = 1,
-    [MARBLE_IRON] = 1,
-    [MARBLE_COPPER] = 1,
-    [MARBLE_SILVER] = 1,
-    [MARBLE_GOLD] = 1
-};
-
 const unsigned char patterns[NUM_PATTERNS][55] = {
-    [0] = {4,11,12,13,14,15,16,23,24,27,28,34,36,37,38,40,45,47,48,49,50,52,53,56,57,58,59,60,61,62,63,64,67,68,70,71,72,73,75,80,82,83,84,86,92,93,96,97,104,105,106,107,108,109,116},
-    [1] = {4,11,12,13,14,15,16,23,24,27,28,34,36,37,38,40,45,47,48,49,50,52,53,56,57,58,59,60,61,62,63,64,67,68,70,71,72,73,75,80,82,83,84,86,92,93,96,97,104,105,106,107,108,109,116}
+    [0] = {2,13,14,24,25,26,27,28,29,33,34,35,36,37,38,39,40,45,46,47,48,49,50,51,57,58,59,60,61,62,63,69,70,71,72,73,74,75,80,81,82,83,84,85,86,87,91,92,93,94,95,96,106,107,118},
+    [1] = {4,11,12,13,14,15,16,23,24,27,28,34,36,37,38,40,45,47,48,49,50,52,53,56,57,58,59,60,61,62,63,64,67,68,70,71,72,73,75,80,82,83,84,86,92,93,96,97,104,105,106,107,108,109,116},
+    [2] = {0,1,2,3,4,5,11,15,17,22,23,24,25,26,27,29,33,35,39,41,44,46,51,52,53,55,57,60,63,65,67,68,69,74,76,79,81,85,87,91,93,94,95,96,97,98,103,105,109,115,116,117,118,119,120},
+    [3] = {0,1,2,3,4,5,11,15,17,22,23,26,29,33,35,36,37,38,41,44,47,50,51,52,53,55,58,60,62,65,67,68,69,70,73,76,79,82,83,84,85,87,91,94,97,98,103,105,109,115,116,117,118,119,120},
+    [4] = {0,1,2,3,11,13,14,22,23,24,25,26,29,33,36,38,41,47,48,49,50,52,53,58,59,60,61,62,63,65,69,71,72,74,75,76,79,80,81,82,83,84,85,86,87,91,92,93,98,103,105,115,116,117,118},
+    [5] = {0,1,2,3,12,14,15,24,25,27,34,36,37,38,39,40,46,47,48,49,50,57,58,59,60,61,62,63,64,65,68,70,71,72,73,74,76,79,80,81,82,83,84,86,87,91,93,95,96,97,98,103,104,106,115},
+    [6] = {0,1,2,3,13,14,15,25,26,27,35,36,37,38,39,46,47,48,49,50,51,57,58,59,60,61,62,65,68,69,70,71,72,73,74,75,76,79,80,81,82,83,84,85,86,87,91,92,94,95,96,97,98,103,115},
+    [7] = {0,4,11,12,13,14,15,16,17,22,23,24,25,29,33,34,35,36,40,41,44,48,51,52,53,56,60,61,62,63,64,65,67,68,71,74,75,80,81,82,86,92,93,94,97,104,105,106,108,109,115,116,117,118,119},
+    [8] = {0,5,11,12,17,22,23,24,25,26,27,29,33,35,36,37,39,41,44,46,48,49,51,52,53,55,57,59,60,61,62,63,64,65,69,70,71,72,73,74,81,82,85,93,94,95,96,104,105,115,116,117,118,119,120},
+    [9] = {3,4,5,12,14,15,16,23,25,26,27,28,34,35,36,39,40,45,46,47,48,50,51,52,55,56,57,60,61,62,64,67,68,69,71,74,79,80,81,82,83,85,86,94,95,96,97,98,104,105,106,107,108,109,120}
 };
 
-int sigmar_Init(Sigmar** sigmar) {
-    *sigmar = (Sigmar*) malloc(sizeof(Sigmar));
+const unsigned char pattern_anchors[NUM_PATTERNS][6] = {
+    [0] = {48, 49, 59, 61, 71, 72},
+    [1] = {48, 49, 59, 61, 71, 72},
+    [2] = {25, 39, 46, 74, 81, 95},
+    [3] = {37, 47, 50, 70, 73, 83},
+    [4] = {48, 49, 59, 61, 71, 72},
+    [5] = {48, 49, 59, 61, 71, 72},
+    [6] = {48, 49, 59, 61, 71, 72},
+    [7] = {48, 61, 71, 121, 121, 121},
+    [8] = {48, 49, 59, 61, 71, 72},
+    [9] = {48, 61, 71, 121, 121, 121}
+};
 
-    sigmar_CalcAdjacencyOffsets((*sigmar), (*sigmar)->adjacency_offsets);
+int sigmar_Init(Sigmar **sigmar) {
+    *sigmar = (Sigmar *) malloc(sizeof(Sigmar));
+    if (*sigmar == NULL) { return 1; }
 
+    sigmar_CalcAdjacencyOffsets(*sigmar, (*sigmar)->adjacency_offsets);
     sigmar_Reset(*sigmar);
 
     return 0;
@@ -43,7 +47,15 @@ void sigmar_Unbind(Sigmar *sigmar, EventID event) { sigmar->callback[event] = NU
 void sigmar_Reset(Sigmar *sigmar) {
     if (sigmar == NULL) { return; }
 
+    sigmar_CleanBoard(sigmar);
     sigmar->turn = 0;
+
+    if (sigmar->callback[EVENT_BOARD_RESET] != NULL) { sigmar->callback[EVENT_BOARD_RESET](); }
+}
+
+void sigmar_CleanBoard(Sigmar *sigmar) {
+    if (sigmar == NULL) { return; }
+
     sigmar->num_selected = 0;
 
     memset(sigmar->marble_counts, 0, (int) NUM_MARBLES);
@@ -57,8 +69,6 @@ void sigmar_Reset(Sigmar *sigmar) {
             sigmar->board[CENTER_ROW + (BOARD_SIZE * i) + x - 1].type = MARBLE_INVALID;
         }
     }
-
-    if (sigmar->callback[EVENT_BOARD_RESET] != NULL) { sigmar->callback[EVENT_BOARD_RESET](); }
 }
 
 int sigmar_ShuffleEasy(Sigmar *sigmar, unsigned char *shuffled_tiles, unsigned char *shuffled_tiles_length) {
@@ -77,17 +87,22 @@ int sigmar_ShuffleEasy(Sigmar *sigmar, unsigned char *shuffled_tiles, unsigned c
     memset(valid_tiles, 0, BOARD_LENGTH);
     for (int i = 0; i < 55; i++) { valid_tiles[patterns[sigmar->pattern][i]] = 1; }
 
-    int free_tiles[BOARD_LENGTH];
-    int free_tiles_length = 0;
+    unsigned char free_tiles[BOARD_LENGTH];
+    unsigned char free_tiles_length = 0;
 
     for (int i = 0; i < 6; i++) {
-        int adj = CENTER_TILE + sigmar->adjacency_offsets[i];
-        if (adj >= 0 &&
-            adj < BOARD_LENGTH &&
-            valid_tiles[adj] == 1) { sigmar->board[adj].type = MARBLE_PLACEHOLDER; free_tiles[free_tiles_length] = adj; free_tiles_length++; }
+        unsigned char anchor = pattern_anchors[sigmar->pattern][i];
+
+        if (anchor != 121) {
+            sigmar->board[anchor].type = MARBLE_PLACEHOLDER;
+            free_tiles[free_tiles_length] = anchor;
+            free_tiles_length++;
+        }
     }
 
     while (free_tiles_length > 0) {
+        if (free_tiles_length < match_size) { return 0; } // Fail if there aren't enough free tiles left.
+
         for (int i = 0; i < match_size; i++) { next_free_tile[i] = -1; }
 
         for (int i = 0; i < match_size; i++) {
@@ -188,15 +203,17 @@ int sigmar_ShuffleHard(Sigmar *sigmar, unsigned char *shuffled_tiles, unsigned c
 GenerationResult sigmar_GenerateBoard(Sigmar *sigmar, unsigned int seed) {
     if (sigmar == NULL) { return GENERATION_ERROR; }
 
-    sigmar->pattern = 1;
+    srand(seed);
+
+    sigmar->pattern = rand() % NUM_PATTERNS;
+
+    //sigmar->pattern = (sigmar->pattern + 1) % NUM_PATTERNS;
 
     unsigned char shuffled_tiles[BOARD_LENGTH];
     unsigned char shuffled_tiles_length = 0;
 
-    srand(seed);
-
     do {
-        sigmar_Reset(sigmar);
+        sigmar_CleanBoard(sigmar);
 
         MarbleType bag[][2] = {
             {MARBLE_SALT, MARBLE_SALT},
@@ -506,12 +523,12 @@ void sigmar_UpdateMarbles(Sigmar *sigmar) {
 }
 
 int sigmar_DeserializeBoard(Sigmar *sigmar, const char *board_data) {
-    if (board_data[0] != 1) { return 1; }
+    if (board_data[0] < 0 || board_data[0] >= NUM_PATTERNS) { return 1; }
 
     memset(sigmar->marble_counts, 0, NUM_MARBLES);
-    unsigned char pattern = board_data[0];
+    sigmar->pattern = board_data[0];
 
-    for (int i = 1; i < 56; i++) { sigmar->board[patterns[pattern][i - 1]].type = board_data[i]; sigmar->marble_counts[board_data[i]]++; }
+    for (int i = 1; i < 56; i++) { sigmar->board[patterns[sigmar->pattern][i - 1]].type = board_data[i]; sigmar->marble_counts[board_data[i]]++; }
 
     sigmar_UpdateMarbles(sigmar);
 

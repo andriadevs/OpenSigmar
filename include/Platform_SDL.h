@@ -27,10 +27,14 @@
 #define SAVE_FILE_HEADER "#!"
 #define SAVE_FILE "./save"
 #define DATA_FILE_HEADER "#!"
-#define DATA_FILE "./data"
+#define DATA_FILE ASSETS_DIR "solitaire.dat"
 
 #define NUM_TEXTURES (TEXTURE_INVALID)
 #define NUM_SOUNDS (SOUND_INVALID)
+
+// Keybind macros... until I add a config.ini, TODO: which I will, eventually.
+#define KEY_QUICK_RESET SDLK_SPACE
+#define KEY_DEBUG_MODE SDLK_D
 
 typedef struct Sigmar Sigmar; // Forward declaration.
 typedef struct SigmarData SigmarData; // Forward declaration.
@@ -198,7 +202,8 @@ typedef struct {
     unsigned short buttons_length;
 
     unsigned int last_board;
-    int is_board_clear;
+    char is_board_clear;
+    char debug_mode;
 
     clock_t last_tick;
 } AppState;

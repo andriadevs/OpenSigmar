@@ -16,7 +16,8 @@
 #define CENTER_TILE ((int)(BOARD_LENGTH * 0.5)) // Index of the center tile of the board.
 #define CENTER_ROW ((CENTER_TILE - (int)(BOARD_SIZE * 0.5))) // Index of the first tile of the center row of the board.
 
-#define NUM_PATTERNS 2
+#define NUM_PATTERNS 10
+#define PATTERN_LENGTH (55) // Length of each of the preset patterns, AKA, the total number of marbles on a newly-generated board.
 
 // DO NOT MODIFY THIS ENUM UNLESS YOU KNOW WHAT YOU ARE DOING
 // It is important to several calculations that they are ordered as they are.
@@ -122,9 +123,8 @@ typedef struct Sigmar {
     EventCallback callback[EVENT_INVALID]; // Callback functions for each valid EventID.
 } Sigmar;
 
-extern const unsigned char bag_counts[NUM_MARBLES];
-
 extern const unsigned char patterns[NUM_PATTERNS][55];
+extern const unsigned char pattern_anchors[NUM_PATTERNS][6]; // Indices from which board generation originates when using sigmar_ShuffleEasy().
 
 /*
  * Initializes a new Sigmar instance.
@@ -142,9 +142,14 @@ void sigmar_Bind(Sigmar *sigmar, EventID event, EventCallback callback);
 void sigmar_Unbind(Sigmar *sigmar, EventID event);
 
 /*
- * Resets the game state.
+ * Resets the game state & calls bound callback for EVENT_BOARD_RESET.
  */
 void sigmar_Reset(Sigmar *sigmar);
+
+/*
+ * Cleans the board.
+ */
+void sigmar_CleanBoard(Sigmar *sigmar);
 
 /*
  * Attempts to generate a new board.
@@ -154,7 +159,6 @@ void sigmar_Reset(Sigmar *sigmar);
 GenerationResult sigmar_GenerateBoard(Sigmar *sigmar, unsigned int seed);
 
 /*
- * TODO: Implement this.
  * Checks if a board is winnable.
  *
  * Returns 1 if it can be cleared, otherwise returns 0;
@@ -163,6 +167,8 @@ int sigmar_IsBoardWinnable(Sigmar *sigmar);
 
 /*
  * Attempts to select marble at given index and attempts a match if applicable.
+ * 
+ * If a match occurs and as a result the board is cleared, calls bound callback for EVENT_BOARD_CLEAR.
  */
 SelectResult sigmar_Select(Sigmar* sigmar, unsigned int index);
 
